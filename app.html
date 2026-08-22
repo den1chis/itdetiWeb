@@ -1,0 +1,8071 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>
+    ITdeti
+</title>
+
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+:root {
+
+    --bg: #f5f6f9;
+    --surface: #ffffff;
+    --surface-soft: #f8f9fc;
+
+    --border: #e6e8ee;
+
+    --text: #172033;
+    --muted: #697386;
+
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+
+    --success: #14803a;
+    --success-bg: #eaf8ef;
+
+    --danger: #b42318;
+    --danger-bg: #fff0ef;
+
+    --warning: #a15c00;
+    --warning-bg: #fff7e5;
+
+    --shadow:
+        0 10px 35px
+        rgba(20, 30, 60, .07);
+}
+
+
+body {
+
+    margin: 0;
+
+    background:
+        var(--bg);
+
+    color:
+        var(--text);
+
+    font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+
+}
+
+
+button,
+input,
+select,
+textarea {
+
+    font: inherit;
+
+}
+
+
+button {
+
+    cursor: pointer;
+
+}
+
+
+button:disabled {
+
+    opacity: .55;
+
+    cursor: wait;
+
+}
+
+
+/* =========================================================
+   LAYOUT
+========================================================= */
+
+.app {
+
+    min-height: 100vh;
+
+    display:
+        grid;
+
+    grid-template-columns:
+        230px 1fr;
+
+}
+
+
+.sidebar {
+
+    height: 100vh;
+
+    position: sticky;
+
+    top: 0;
+
+    background:
+        #111827;
+
+    color: white;
+
+    padding:
+        18px 14px;
+
+}
+
+
+.logo {
+
+    font-size:
+        21px;
+
+    font-weight:
+        800;
+
+    padding:
+        8px 12px 26px;
+
+}
+
+
+.nav {
+
+    display:
+        grid;
+
+    gap:
+        5px;
+
+}
+
+
+.nav button {
+
+    border:
+        none;
+
+    background:
+        transparent;
+
+    color:
+        #c7ced9;
+
+    text-align:
+        left;
+
+    padding:
+        11px 12px;
+
+    border-radius:
+        9px;
+
+}
+
+
+.nav button:hover,
+.nav button.active {
+
+    background:
+        #1f2937;
+
+    color:
+        white;
+
+}
+
+
+.sidebar-footer {
+
+    position:
+        absolute;
+
+    left:
+        14px;
+
+    right:
+        14px;
+
+    bottom:
+        18px;
+
+}
+
+
+.logout {
+
+    width:
+        100%;
+
+    border:
+        1px solid
+        #374151;
+
+    background:
+        transparent;
+
+    color:
+        #c7ced9;
+
+    padding:
+        10px;
+
+    border-radius:
+        9px;
+
+}
+
+
+.main {
+
+    min-width:
+        0;
+
+    padding:
+        24px;
+
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.page-header {
+
+    display:
+        flex;
+
+    justify-content:
+        space-between;
+
+    align-items:
+        center;
+
+    gap:
+        15px;
+
+    margin-bottom:
+        22px;
+
+}
+
+
+.page-header h1 {
+
+    margin:
+        0;
+
+    font-size:
+        27px;
+
+}
+
+
+.page-header p {
+
+    margin:
+        4px 0 0;
+
+    color:
+        var(--muted);
+
+    font-size:
+        13px;
+
+}
+
+
+/* =========================================================
+   VIEW
+========================================================= */
+
+.view {
+
+    display:
+        none;
+
+}
+
+
+.view.active {
+
+    display:
+        block;
+
+}
+
+
+/* =========================================================
+   CARD
+========================================================= */
+
+.card {
+
+    background:
+        var(--surface);
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius:
+        16px;
+
+    box-shadow:
+        var(--shadow);
+
+}
+
+
+.card-padding {
+
+    padding:
+        16px;
+
+}
+
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+.btn {
+
+    border:
+        1px solid
+        var(--border);
+
+    background:
+        var(--surface);
+
+    padding:
+        9px 12px;
+
+    border-radius:
+        9px;
+
+    transition:
+        .15s;
+
+}
+
+
+.btn:hover {
+
+    background:
+        var(--surface-soft);
+
+}
+
+
+.btn.primary {
+
+    background:
+        var(--primary);
+
+    color:
+        white;
+
+    border-color:
+        var(--primary);
+
+}
+
+
+.btn.primary:hover {
+
+    background:
+        var(--primary-hover);
+
+}
+
+
+.icon-btn {
+
+    width:
+        34px;
+
+    height:
+        34px;
+
+    display:
+        grid;
+
+    place-items:
+        center;
+
+    border:
+        0;
+
+    border-radius:
+        9px;
+
+    background:
+        transparent;
+
+    color:
+        var(--muted);
+
+    font-size:
+        20px;
+
+}
+
+
+.icon-btn:hover {
+
+    background:
+        #f0f1f5;
+
+    color:
+        var(--text);
+
+}
+
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
+
+.stats {
+
+    display:
+        grid;
+
+    grid-template-columns:
+        repeat(4, 1fr);
+
+    gap:
+        14px;
+
+}
+
+
+.stat {
+
+    padding:
+        17px;
+
+}
+
+
+.stat-label {
+
+    color:
+        var(--muted);
+
+    font-size:
+        13px;
+
+}
+
+
+.stat-value {
+
+    font-size:
+        25px;
+
+    font-weight:
+        800;
+
+    margin-top:
+        7px;
+
+}
+
+
+.dashboard-grid {
+
+    display:
+        grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap:
+        14px;
+
+    margin-top:
+        14px;
+
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.table-wrap {
+
+    overflow-x:
+        auto;
+
+}
+
+
+table {
+
+    width:
+        100%;
+
+    border-collapse:
+        collapse;
+
+}
+
+
+th,
+td {
+
+    text-align:
+        left;
+
+    padding:
+        11px 10px;
+
+    border-bottom:
+        1px solid
+        #eef0f4;
+
+    font-size:
+        13px;
+
+}
+
+
+th {
+
+    color:
+        var(--muted);
+
+    font-weight:
+        700;
+
+}
+
+
+tbody tr.clickable {
+
+    cursor:
+        pointer;
+
+}
+
+
+tbody tr.clickable:hover {
+
+    background:
+        #fafbfe;
+
+}
+
+
+/* =========================================================
+   PILLS
+========================================================= */
+
+.pill {
+
+    display:
+        inline-flex;
+
+    padding:
+        4px 8px;
+
+    border-radius:
+        999px;
+
+    background:
+        #eef0f4;
+
+    font-size:
+        11px;
+
+    font-weight:
+        700;
+
+}
+
+
+.pill.success {
+
+    background:
+        var(--success-bg);
+
+    color:
+        var(--success);
+
+}
+
+
+.pill.danger {
+
+    background:
+        var(--danger-bg);
+
+    color:
+        var(--danger);
+
+}
+
+
+.pill.warning {
+
+    background:
+        var(--warning-bg);
+
+    color:
+        var(--warning);
+
+}
+
+
+/* =========================================================
+   TOOLBAR
+========================================================= */
+
+.toolbar {
+
+    display:
+        flex;
+
+    flex-wrap:
+        wrap;
+
+    align-items:
+        center;
+
+    gap:
+        8px;
+
+    margin-bottom:
+        14px;
+
+}
+
+
+.toolbar input,
+.toolbar select {
+
+    padding:
+        9px 11px;
+
+    background:
+        white;
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius:
+        9px;
+
+    outline:
+        none;
+
+}
+
+
+/* =========================================================
+   STUDENT
+========================================================= */
+
+.student-layout {
+
+    display:
+        grid;
+
+    grid-template-columns:
+        1fr 350px;
+
+    gap:
+        14px;
+
+}
+
+
+.student-summary {
+
+    display:
+        grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap:
+        10px;
+
+    margin-bottom:
+        18px;
+
+}
+
+
+.summary-box {
+
+    background:
+        var(--surface-soft);
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius:
+        11px;
+
+    padding:
+        12px;
+
+}
+
+
+.summary-box small {
+
+    color:
+        var(--muted);
+
+}
+
+
+.summary-box strong {
+
+    display:
+        block;
+
+    font-size:
+        19px;
+
+    margin-top:
+        4px;
+
+}
+
+
+.section-title {
+
+    font-size:
+        14px;
+
+    font-weight:
+        800;
+
+    margin:
+        22px 0 10px;
+
+}
+
+
+.parent-box,
+.schedule-box {
+
+    border:
+        1px solid
+        var(--border);
+
+    background:
+        var(--surface-soft);
+
+    border-radius:
+        11px;
+
+    padding:
+        12px;
+
+    margin-bottom:
+        9px;
+
+}
+
+
+/* =========================================================
+   FORMS
+========================================================= */
+
+.form {
+
+    display:
+        grid;
+
+    gap:
+        12px;
+
+}
+
+
+.form-row {
+
+    display:
+        grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap:
+        10px;
+
+}
+
+
+.form-group {
+
+    display:
+        grid;
+
+    gap:
+        6px;
+
+}
+
+
+.form-group label {
+
+    font-size:
+        12px;
+
+    font-weight:
+        700;
+
+}
+
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+
+    width:
+        100%;
+
+    padding:
+        10px 11px;
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius:
+        9px;
+
+    outline:
+        none;
+
+    background:
+        white;
+
+}
+
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+
+    border-color:
+        var(--primary);
+
+}
+
+
+.form-actions {
+
+    display:
+        flex;
+
+    justify-content:
+        flex-end;
+
+    gap:
+        8px;
+
+    margin-top:
+        6px;
+
+}
+
+
+/* =========================================================
+   CALENDAR
+========================================================= */
+
+.calendar-toolbar {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        space-between;
+
+    gap:
+        10px;
+
+    margin-bottom:
+        14px;
+
+}
+
+
+.calendar-left {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        6px;
+
+}
+
+
+.calendar-title {
+
+    font-size:
+        17px;
+
+    font-weight:
+        800;
+
+    margin:
+        0 12px;
+
+}
+
+
+.view-switcher {
+
+    display:
+        flex;
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius:
+        9px;
+
+    overflow:
+        hidden;
+
+}
+
+
+.view-switcher button {
+
+    border:
+        0;
+
+    background:
+        white;
+
+    padding:
+        8px 10px;
+
+    font-size:
+        12px;
+
+}
+
+
+.view-switcher button.active {
+
+    background:
+        #eef0ff;
+
+    color:
+        var(--primary);
+
+    font-weight:
+        700;
+
+}
+
+
+
+
+
+
+
+.time-column {
+
+    border-right:
+        1px solid
+        var(--border);
+
+}
+
+
+
+
+
+.day-header {
+
+    height:
+        58px;
+
+    padding:
+        9px;
+
+    text-align:
+        center;
+
+    background:
+        #fafbfe;
+
+    border-bottom:
+        1px solid
+        var(--border);
+
+    cursor:
+        pointer;
+
+}
+
+
+.day-header:hover {
+
+    background:
+        #f1f3f9;
+
+}
+
+
+.day-number {
+
+    display:
+        block;
+
+    font-size:
+        18px;
+
+    font-weight:
+        800;
+
+}
+
+
+.day-name {
+
+    font-size:
+        11px;
+
+    color:
+        var(--muted);
+
+}
+
+
+
+
+
+
+
+
+.calendar-scroll {
+    width: 100%;
+    overflow-x: hidden;
+    overflow-y: hidden;
+}
+
+
+.week-calendar {
+    display: grid;
+    grid-template-columns: 38px repeat(7, minmax(0, 1fr));
+    width: 100%;
+    min-width: 0;
+}
+
+
+.time-column {
+    border-right: 1px solid var(--border);
+}
+
+
+.day-column {
+    position: relative;
+    min-height: 0;
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+}
+
+
+.day-header {
+    height: 42px;
+
+    padding: 5px;
+
+    text-align: center;
+
+    background: #fafbfe;
+
+    border-bottom: 1px solid var(--border);
+
+    cursor: pointer;
+}
+
+
+.day-header:hover {
+    background: #f1f3f9;
+}
+
+
+.day-number {
+    display: block;
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 17px;
+}
+
+
+.day-name {
+    display: block;
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 12px;
+}
+
+
+.hour-line {
+    height: 30px;
+    border-bottom: 1px solid #eef0f4;
+}
+
+
+.time-label {
+    height: 30px;
+
+    border-bottom: 1px solid #eef0f4;
+
+    text-align: right;
+
+    padding:
+        2px 5px;
+
+    color: #8a93a3;
+
+    font-size: 9px;
+
+    line-height: 26px;
+}
+
+
+.calendar-event {
+    position: absolute;
+
+    left: 3px;
+    right: 3px;
+
+    padding: 4px 5px;
+
+    border-radius: 6px;
+
+    color: white;
+
+    background: var(--primary);
+
+    overflow: hidden;
+
+    cursor: pointer;
+
+    font-size: 10px;
+
+    line-height: 12px;
+
+    z-index: 2;
+
+    box-shadow:
+        0 1px 3px rgba(0,0,0,.08);
+}
+
+
+.calendar-event.masterclass {
+    background: #b45309;
+}
+
+
+.calendar-event.personal {
+    background: #475569;
+}
+
+
+.calendar-event:hover {
+    filter: brightness(.96);
+}
+
+
+.calendar-event-title {
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+.calendar-event-meta {
+    opacity: .92;
+    font-size: 9px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+.calendar-icon {
+    display: inline-flex;
+
+    width: 15px;
+    height: 15px;
+
+    align-items: center;
+    justify-content: center;
+
+    margin-right: 4px;
+
+    font-size: 10px;
+    font-weight: 800;
+
+    vertical-align: -1px;
+}
+
+
+.status-icon {
+    display: inline-flex;
+
+    width: 16px;
+    height: 16px;
+
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 5px;
+
+    font-size: 10px;
+    font-weight: 800;
+
+    flex-shrink: 0;
+}
+
+
+.status-icon.planned {
+    background: #eef0ff;
+    color: var(--primary);
+}
+
+
+.status-icon.completed {
+    background: var(--success-bg);
+    color: var(--success);
+}
+
+
+.status-icon.alert {
+    background: var(--warning-bg);
+    color: var(--warning);
+}
+
+
+.calendar-event.masterclass {
+
+    background:
+        #b45309;
+
+}
+
+
+.calendar-event.personal {
+
+    background:
+        #475569;
+
+}
+
+
+.calendar-event.cancelled {
+
+    opacity:
+        .5;
+
+    text-decoration:
+        line-through;
+
+}
+
+
+.list-calendar {
+
+    display:
+        grid;
+
+    gap:
+        10px;
+
+}
+
+
+.list-day {
+
+    padding:
+        13px;
+
+    background:
+        var(--surface-soft);
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius:
+        11px;
+
+}
+
+
+.list-date {
+
+    font-weight:
+        800;
+
+    margin-bottom:
+        8px;
+
+}
+
+
+.calendar-item {
+
+    display:
+        flex;
+
+    justify-content:
+        space-between;
+
+    gap:
+        10px;
+
+    padding:
+        10px;
+
+    background:
+        white;
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius:
+        9px;
+
+    margin-bottom:
+        6px;
+
+    cursor:
+        pointer;
+
+}
+
+
+.calendar-item:hover {
+
+    background:
+        #fbfcff;
+
+}
+
+
+.day-calendar {
+
+    max-width:
+        100%;
+
+}
+
+
+.day-title {
+
+    font-size:
+        18px;
+
+    font-weight:
+        800;
+
+    margin-bottom:
+        12px;
+
+}
+
+
+/* =========================================================
+   FINANCE
+========================================================= */
+
+.finance-grid {
+
+    display:
+        grid;
+
+    grid-template-columns:
+        repeat(5, 1fr);
+
+    gap:
+        12px;
+
+}
+
+
+.money-large {
+
+    font-size:
+        24px;
+
+    font-weight:
+        800;
+
+    margin-top:
+        5px;
+
+}
+
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+.modal {
+
+    position:
+        fixed;
+
+    inset:
+        0;
+
+    display:
+        none;
+
+    justify-content:
+        center;
+
+    align-items:
+        center;
+
+    background:
+        rgba(
+            15,
+            23,
+            42,
+            .45
+        );
+
+    z-index:
+        500;
+
+    padding:
+        18px;
+
+}
+
+
+.modal.open {
+
+    display:
+        flex;
+
+}
+
+
+.modal-box {
+
+    width:
+        min(
+            720px,
+            100%
+        );
+
+    max-height:
+        calc(
+            100vh - 36px
+        );
+
+    overflow-y:
+        auto;
+
+    background:
+        white;
+
+    border-radius:
+        18px;
+
+    box-shadow:
+        0 25px 80px
+        rgba(
+            10,
+            20,
+            40,
+            .2
+        );
+
+}
+
+
+.modal-header {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        space-between;
+
+    padding:
+        16px 18px;
+
+    border-bottom:
+        1px solid
+        var(--border);
+
+}
+
+
+.modal-header h2 {
+
+    margin:
+        0;
+
+    font-size:
+        18px;
+
+}
+
+
+.modal-body {
+
+    padding:
+        18px;
+
+}
+
+
+.close {
+
+    width:
+        34px;
+
+    height:
+        34px;
+
+    display:
+        grid;
+
+    place-items:
+        center;
+
+    border:
+        0;
+
+    border-radius:
+        9px;
+
+    background:
+        transparent;
+
+    color:
+        #7a8497;
+
+    font-size:
+        25px;
+
+}
+
+
+.close:hover {
+
+    background:
+        #f0f1f5;
+
+    color:
+        #111827;
+
+}
+
+
+/* =========================================================
+   EMPTY
+========================================================= */
+
+.empty {
+
+    color:
+        var(--muted);
+
+    text-align:
+        center;
+
+    padding:
+        28px;
+
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media(max-width:1100px) {
+
+    .stats,
+    .finance-grid {
+
+        grid-template-columns:
+            repeat(
+                2,
+                1fr
+            );
+
+    }
+
+    .student-layout {
+
+        grid-template-columns:
+            1fr;
+
+    }
+
+}
+
+
+@media(max-width:760px) {
+
+    .app {
+
+        display:
+            block;
+
+    }
+
+    .sidebar {
+
+        height:
+            auto;
+
+        position:
+            sticky;
+
+        top:
+            0;
+
+        z-index:
+            100;
+
+    }
+
+    .nav {
+
+        grid-template-columns:
+            repeat(
+                5,
+                1fr
+            );
+
+    }
+
+    .nav button {
+
+        text-align:
+            center;
+
+        font-size:
+            11px;
+
+    }
+
+    .sidebar-footer {
+
+        position:
+            static;
+
+        margin-top:
+            10px;
+
+    }
+
+    .main {
+
+        padding:
+            14px;
+
+    }
+
+    .page-header {
+
+        align-items:
+            flex-start;
+
+        flex-direction:
+            column;
+
+    }
+
+    .stats,
+    .finance-grid,
+    .dashboard-grid,
+    .form-row,
+    .student-summary {
+
+        grid-template-columns:
+            1fr;
+
+    }
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<div class="app">
+
+
+<!-- ========================================================
+     SIDEBAR
+========================================================= -->
+
+<aside class="sidebar">
+
+    <div class="logo">
+        ITdeti
+    </div>
+
+    <nav class="nav">
+
+        <button
+            class="active"
+            data-page="dashboard"
+        >
+            Главная
+        </button>
+
+        <button
+            data-page="students"
+        >
+            Ученики
+        </button>
+
+        <button
+            data-page="schedule"
+        >
+            Расписание
+        </button>
+
+        <button
+            data-page="finance"
+        >
+            Финансы
+        </button>
+
+        <button
+            data-page="notifications"
+        >
+            Уведомления
+        </button>
+
+    </nav>
+
+
+    <div class="sidebar-footer">
+
+        <button
+            class="logout"
+            id="logout"
+        >
+            Выйти
+        </button>
+
+    </div>
+
+</aside>
+
+
+<!-- ========================================================
+     MAIN
+========================================================= -->
+
+<main class="main">
+
+
+<header class="page-header">
+
+    <div>
+
+        <h1 id="pageTitle">
+            Главная
+        </h1>
+
+        <p id="pageSubtitle">
+            Управление школой
+        </p>
+
+    </div>
+
+</header>
+
+
+<!-- ========================================================
+     DASHBOARD
+========================================================= -->
+
+<section
+    id="dashboard"
+    class="view active"
+>
+
+<div
+    id="dashboardStats"
+    class="stats"
+></div>
+
+
+<div class="dashboard-grid">
+
+
+<div class="card card-padding">
+
+    <div class="section-title">
+        Сегодня
+    </div>
+
+    <div
+        id="dashboardSchedule"
+    ></div>
+
+</div>
+
+
+<div class="card card-padding">
+
+    <div class="section-title">
+        На контроле
+    </div>
+
+    <div
+        id="dashboardAlerts"
+    ></div>
+
+</div>
+
+
+</div>
+
+</section>
+
+
+<!-- ========================================================
+     STUDENTS
+========================================================= -->
+
+<section
+    id="students"
+    class="view"
+>
+
+
+<div class="toolbar">
+
+    <input
+        id="studentSearch"
+        placeholder="Поиск ученика..."
+    >
+
+    <button
+        class="btn primary"
+        id="newStudent"
+    >
+        + Ученик
+    </button>
+
+</div>
+
+
+<div class="card card-padding">
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>
+    Ученик
+</th>
+
+<th>
+    Курс
+</th>
+
+<th>
+    Цена
+</th>
+
+<th>
+    Баланс
+</th>
+
+<th>
+    Занятий
+</th>
+
+</tr>
+
+</thead>
+
+
+<tbody
+    id="studentsTable"
+></tbody>
+
+
+</table>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- ========================================================
+     SCHEDULE
+========================================================= -->
+
+<section
+    id="schedule"
+    class="view"
+>
+
+
+<div class="toolbar">
+
+    <button
+        class="btn primary"
+        id="addLesson"
+    >
+        + Добавить урок
+    </button>
+
+    <button
+        class="btn"
+        id="addEvent"
+    >
+        + Событие
+    </button>
+
+</div>
+
+
+<div class="card card-padding">
+
+
+<div class="calendar-toolbar">
+
+<div class="calendar-left">
+
+    <button
+        class="icon-btn"
+        id="prevPeriod"
+        title="Назад"
+    >
+        ‹
+    </button>
+
+    <button
+        class="btn"
+        id="todayPeriod"
+    >
+        Сегодня
+    </button>
+
+    <button
+        class="icon-btn"
+        id="nextPeriod"
+        title="Вперёд"
+    >
+        ›
+    </button>
+
+    <div
+        class="calendar-title"
+        id="calendarTitle"
+    ></div>
+
+</div>
+
+
+<div class="view-switcher">
+
+    <button
+        data-calendar-view="month"
+        class="active"
+    >
+        Месяц
+    </button>
+
+    <button
+        data-calendar-view="week"
+    >
+        Неделя
+    </button>
+
+    <button
+        data-calendar-view="list"
+    >
+        Список
+    </button>
+
+    <button
+        data-calendar-view="day"
+    >
+        День
+    </button>
+
+</div>
+
+
+</div>
+
+
+<div
+    id="calendar"
+></div>
+
+
+</div>
+
+</section>
+
+
+<!-- ========================================================
+     FINANCE
+========================================================= -->
+
+<section
+    id="finance"
+    class="view"
+>
+
+
+<div
+    id="financeStats"
+    class="finance-grid"
+></div>
+
+
+<div
+    class="toolbar"
+    style="margin-top:14px"
+>
+
+    <button
+        class="btn primary"
+        id="addPayment"
+    >
+        + Оплата
+    </button>
+
+    <button
+        class="btn"
+        id="addExpense"
+    >
+        + Расход
+    </button>
+
+</div>
+
+
+<div class="dashboard-grid">
+
+
+<div class="card card-padding">
+
+<div class="section-title">
+    Операции
+</div>
+
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>
+    Тип
+</th>
+
+<th>
+    Сумма
+</th>
+
+<th>
+    Дата
+</th>
+
+<th>
+    Описание
+</th>
+
+</tr>
+
+</thead>
+
+
+<tbody
+    id="transactions"
+></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+
+<div class="card card-padding">
+
+<div class="section-title">
+    Расходы по категориям
+</div>
+
+<div
+    id="expenseCategories"
+></div>
+
+</div>
+
+
+</div>
+
+</section>
+
+
+<!-- ========================================================
+     NOTIFICATIONS
+========================================================= -->
+
+<section
+    id="notifications"
+    class="view"
+>
+
+
+<div class="card card-padding">
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>
+    Источник
+</th>
+
+<th>
+    Событие
+</th>
+
+<th>
+    Сводка
+</th>
+
+<th>
+    Статус
+</th>
+
+<th>
+    Дата
+</th>
+
+</tr>
+
+</thead>
+
+
+<tbody
+    id="notificationTable"
+></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</section>
+
+
+</main>
+
+</div>
+
+
+<!-- ========================================================
+     MODAL
+========================================================= -->
+
+<div
+    class="modal"
+    id="modal"
+>
+
+<div class="modal-box">
+
+<div class="modal-header">
+
+<h2
+    id="modalTitle"
+>
+    Форма
+</h2>
+
+<button
+    class="close"
+    id="modalClose"
+>
+    ×
+</button>
+
+</div>
+
+
+<div
+    class="modal-body"
+    id="modalBody"
+></div>
+
+
+</div>
+
+</div>
+
+
+<script>
+
+
+/* =========================================================
+   CONFIG
+========================================================= */
+
+const API =
+    "https://itdeti.onrender.com";
+
+const ACCESS =
+    "itdeti_access_token";
+
+const REFRESH =
+    "itdeti_refresh_token";
+
+
+const state = {
+
+    page:
+        "dashboard",
+
+    students:
+        [],
+
+    calendar: {
+
+        view:
+            "month",
+
+        date:
+            new Date(),
+
+        items:
+            []
+
+    }
+
+};
+
+
+const COURSE_OPTIONS = [
+    "",
+    "Python",
+    "Scratch",
+    "Roblox",
+    "Unity",
+    "Blender",
+    "Другое"
+];
+
+
+const DAYS = [
+    "Понедельник",
+    "Вторник",
+    "Среда",
+    "Четверг",
+    "Пятница",
+    "Суббота",
+    "Воскресенье"
+];
+
+
+const DAYS_SHORT = [
+    "Пн",
+    "Вт",
+    "Ср",
+    "Чт",
+    "Пт",
+    "Сб",
+    "Вс"
+];
+
+
+function $(selector) {
+
+    return document.querySelector(
+        selector
+    );
+
+}
+
+function esc(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+
+function money(value) {
+
+    return (
+        Number(value || 0)
+            .toLocaleString(
+                "ru-RU"
+            )
+        + " ₸"
+    );
+
+}
+
+
+function escapeHtml(value) {
+
+    return String(
+        value ?? ""
+    )
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+}
+
+
+function pad(value) {
+
+    return String(value)
+        .padStart(2, "0");
+
+}
+
+
+function dateKey(date) {
+
+    return [
+        date.getFullYear(),
+        pad(date.getMonth() + 1),
+        pad(date.getDate())
+    ].join("-");
+
+}
+
+
+function formatDateTime(value) {
+
+    return new Date(value)
+        .toLocaleString(
+            "ru-RU",
+            {
+                dateStyle:
+                    "short",
+                timeStyle:
+                    "short"
+            }
+        );
+
+}
+
+
+function formatDate(value) {
+
+    return new Date(value)
+        .toLocaleDateString(
+            "ru-RU"
+        );
+
+}
+
+
+function randomId() {
+
+    return crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random()}`;
+
+}
+
+
+/* =========================================================
+   AUTH / API
+========================================================= */
+
+async function refreshAccess() {
+
+    const token =
+        localStorage.getItem(
+            REFRESH
+        );
+
+    if (!token)
+        return false;
+
+
+    const response =
+        await fetch(
+            `${API}/auth/refresh`,
+            {
+                method:
+                    "POST",
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+                body:
+                    JSON.stringify({
+                        refresh_token:
+                            token
+                    })
+            }
+        );
+
+
+    if (!response.ok)
+        return false;
+
+
+    const data =
+        await response.json();
+
+
+    localStorage.setItem(
+        ACCESS,
+        data.access_token
+    );
+
+
+    if (data.refresh_token) {
+
+        localStorage.setItem(
+            REFRESH,
+            data.refresh_token
+        );
+
+    }
+
+
+    return true;
+
+}
+
+
+async function api(
+    path,
+    options = {},
+    retry = true
+) {
+
+    const token =
+        localStorage.getItem(
+            ACCESS
+        );
+
+
+    if (!token) {
+
+        location.href =
+            "index.html";
+
+        throw new Error(
+            "Не авторизован"
+        );
+
+    }
+
+
+    const headers =
+        new Headers(
+            options.headers || {}
+        );
+
+
+    headers.set(
+        "Authorization",
+        `Bearer ${token}`
+    );
+
+
+    if (
+        options.body &&
+        !headers.has(
+            "Content-Type"
+        )
+    ) {
+
+        headers.set(
+            "Content-Type",
+            "application/json"
+        );
+
+    }
+
+
+    const response =
+        await fetch(
+            API + path,
+            {
+                ...options,
+                headers
+            }
+        );
+
+
+    if (
+        response.status === 401 &&
+        retry
+    ) {
+
+        if (
+            await refreshAccess()
+        ) {
+
+            return api(
+                path,
+                options,
+                false
+            );
+
+        }
+
+    }
+
+
+    if (
+        response.status === 401
+    ) {
+
+        localStorage.removeItem(
+            ACCESS
+        );
+
+        localStorage.removeItem(
+            REFRESH
+        );
+
+        location.href =
+            "index.html";
+
+        throw new Error(
+            "Сессия истекла"
+        );
+
+    }
+
+
+    const data =
+        await response
+            .json()
+            .catch(
+                () => ({})
+            );
+
+
+            if (!response.ok) {
+
+                let message;
+
+                if (typeof data.detail === "string") {
+
+                    message = data.detail;
+
+                } else if (Array.isArray(data.detail)) {
+
+                    message = data.detail
+                        .map(error => {
+                            const location =
+                                Array.isArray(error.loc)
+                                    ? error.loc.join(".")
+                                    : "";
+
+                            return `${location}: ${error.msg || "Ошибка"}`;
+                        })
+                        .join("\n");
+
+                } else if (data.detail) {
+
+                    message =
+                        JSON.stringify(
+                            data.detail,
+                            null,
+                            2
+                        );
+
+                } else {
+
+                    message =
+                        `Ошибка HTTP ${response.status}`;
+
+                }
+
+                throw new Error(message);
+                }
+
+
+    return data;
+
+}
+
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+function openModal(
+    title,
+    html
+) {
+
+    $("#modalTitle")
+        .textContent =
+        title;
+
+    $("#modalBody")
+        .innerHTML =
+        html;
+
+    $("#modal")
+        .classList.add(
+            "open"
+        );
+
+}
+
+
+function closeModal() {
+
+    $("#modal")
+        .classList.remove(
+            "open"
+        );
+
+    $("#modalBody")
+        .innerHTML = "";
+
+}
+
+
+$("#modalClose").onclick =
+    closeModal;
+
+
+$("#modal").onclick =
+    event => {
+
+        if (
+            event.target ===
+            $("#modal")
+        ) {
+
+            closeModal();
+
+        }
+
+    };
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+const PAGE_INFO = {
+
+    dashboard: [
+        "Главная",
+        "Сводка по школе"
+    ],
+
+    students: [
+        "Ученики",
+        "Ученики, родители и баланс"
+    ],
+
+    schedule: [
+        "Расписание",
+        "Занятия и события"
+    ],
+
+    finance: [
+        "Финансы",
+        "Баланс, доходы, расходы и прогноз"
+    ],
+
+    notifications: [
+        "Уведомления",
+        "События с телефона"
+    ]
+
+};
+
+
+function switchPage(
+    page
+) {
+
+    state.page =
+        page;
+
+
+    document
+        .querySelectorAll(
+            ".view"
+        )
+        .forEach(
+            element =>
+                element.classList.remove(
+                    "active"
+                )
+        );
+
+
+    document
+        .getElementById(
+            page
+        )
+        .classList.add(
+            "active"
+        );
+
+
+    document
+        .querySelectorAll(
+            ".nav button"
+        )
+        .forEach(
+            button =>
+                button.classList.toggle(
+                    "active",
+                    button.dataset.page ===
+                    page
+                )
+        );
+
+
+    $("#pageTitle")
+        .textContent =
+        PAGE_INFO[page][0];
+
+
+    $("#pageSubtitle")
+        .textContent =
+        PAGE_INFO[page][1];
+
+
+    loadPage(
+        page
+    );
+
+}
+
+
+async function loadPage(
+    page
+) {
+
+    if (
+        page ===
+        "dashboard"
+    )
+        await loadDashboard();
+
+
+    if (
+        page ===
+        "students"
+    )
+        await loadStudents();
+
+
+    if (
+        page ===
+        "schedule"
+    )
+        await loadCalendar();
+
+
+    if (
+        page ===
+        "finance"
+    )
+        await loadFinance();
+
+
+    if (
+        page ===
+        "notifications"
+    )
+        await loadNotifications();
+
+}
+
+
+document
+    .querySelectorAll(
+        ".nav button"
+    )
+    .forEach(
+        button => {
+
+            button.onclick =
+                () =>
+                    switchPage(
+                        button.dataset.page
+                    );
+
+        }
+    );
+
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+$("#logout").onclick =
+    async () => {
+
+        try {
+
+            const token =
+                localStorage.getItem(
+                    REFRESH
+                );
+
+            if (token) {
+
+                await api(
+                    "/auth/logout",
+                    {
+                        method:
+                            "POST",
+                        body:
+                            JSON.stringify({
+                                refresh_token:
+                                    token
+                            })
+                    }
+                );
+
+            }
+
+        } catch (_) {}
+
+        localStorage.removeItem(
+            ACCESS
+        );
+
+        localStorage.removeItem(
+            REFRESH
+        );
+
+        location.href =
+            "index.html";
+
+    };
+
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
+
+async function loadDashboard() {
+
+    try {
+
+        const [
+            students,
+            schedule,
+            finance
+        ] =
+            await Promise.all([
+
+                api(
+                    "/students"
+                ),
+
+                api(
+                    "/schedule/today"
+                ),
+
+                api(
+                    "/finance/summary"
+                )
+
+            ]);
+
+
+        state.students =
+            students;
+
+
+        const active =
+            students.filter(
+                x => x.is_active
+            );
+
+
+        const balances =
+            active.reduce(
+                (
+                    result,
+                    student
+                ) =>
+                    result +
+                    Number(
+                        student.balance || 0
+                    ),
+                0
+            );
+
+
+        const lessonCount =
+            schedule.filter(
+                x =>
+                    x.item_type ===
+                    "lesson"
+            ).length;
+
+
+        $("#dashboardStats")
+            .innerHTML = `
+
+                <div class="card stat">
+
+                    <div class="stat-label">
+                        Ученики
+                    </div>
+
+                    <div class="stat-value">
+                        ${active.length}
+                    </div>
+
+                </div>
+
+
+                <div class="card stat">
+
+                    <div class="stat-label">
+                        Занятий сегодня
+                    </div>
+
+                    <div class="stat-value">
+                        ${lessonCount}
+                    </div>
+
+                </div>
+
+
+                <div class="card stat">
+
+                    <div class="stat-label">
+                        Балансы учеников
+                    </div>
+
+                    <div class="stat-value">
+                        ${money(
+                            balances
+                        )}
+                    </div>
+
+                </div>
+
+
+                <div class="card stat">
+
+                    <div class="stat-label">
+                        Доход месяца
+                    </div>
+
+                    <div class="stat-value">
+                        ${money(
+                            finance
+                                .income_from_students
+                        )}
+                    </div>
+
+                </div>
+
+            `;
+
+
+        $("#dashboardSchedule")
+            .innerHTML =
+            schedule.length
+            ? schedule.map(
+                item => `
+
+                    <div
+                        class="calendar-item"
+                        onclick="
+                            openCalendarItem(
+                                '${item.item_id}',
+                                '${item.item_type}'
+                            )
+                        "
+                    >
+
+                        <div>
+
+                            <b>
+                                ${esc(
+                                    item.title
+                                )}
+                            </b>
+
+                            <div class="small">
+
+                                ${formatDateTime(
+                                    item.start_time
+                                )}
+
+                                ${
+                                    item.student_name
+                                    ? ` · ${esc(
+                                        item.student_name
+                                      )}`
+                                    : ""
+                                }
+
+                            </div>
+
+                        </div>
+
+                        <span class="pill">
+
+                            ${
+                                item.item_type ===
+                                "lesson"
+                                ? (
+                                    item.lesson_kind ===
+                                    "masterclass"
+                                    ? "Мастер-класс"
+                                    : "Урок"
+                                )
+                                : "Событие"
+                            }
+
+                        </span>
+
+                    </div>
+
+                `
+            ).join("")
+            :
+            `<div class="empty">
+                Сегодня ничего нет
+             </div>`;
+
+
+        const alerts =
+            active.filter(
+                student =>
+                    Number(
+                        student.balance || 0
+                    ) <
+                    Number(
+                        student.lesson_price || 0
+                    )
+            );
+
+
+        $("#dashboardAlerts")
+            .innerHTML =
+            alerts.length
+            ? alerts.map(
+                student => `
+
+                    <div class="calendar-item">
+
+                        <div>
+
+                            <b>
+                                ${esc(
+                                    student.full_name
+                                )}
+                            </b>
+
+                            <div class="small">
+
+                                Баланс
+                                ${money(
+                                    student.balance
+                                )}
+
+                                · занятие
+                                ${money(
+                                    student.lesson_price
+                                )}
+
+                            </div>
+
+                        </div>
+
+                        <span
+                            class="status-icon alert"
+                            title="Баланс меньше стоимости занятия"
+                        >
+                            !
+                        </span>
+
+                    </div>
+
+                `
+            ).join("")
+            :
+            `<div class="empty">
+                Всё в порядке
+             </div>`;
+
+    } catch (e) {
+
+        $("#dashboardAlerts")
+            .innerHTML =
+            `<div class="empty">
+                ${esc(e.message)}
+             </div>`;
+
+    }
+
+}
+
+
+/* =========================================================
+   STUDENTS
+========================================================= */
+
+async function loadStudents() {
+
+    try {
+
+        state.students =
+            await api(
+                "/students"
+            );
+
+
+        renderStudents();
+
+    } catch (e) {
+
+        $("#studentsTable")
+            .innerHTML =
+            `<tr>
+                <td
+                    colspan="5"
+                    class="empty"
+                >
+                    ${esc(e.message)}
+                </td>
+             </tr>`;
+
+    }
+
+}
+
+
+function renderStudents() {
+
+    const query =
+        $("#studentSearch")
+            .value
+            .trim()
+            .toLowerCase();
+
+
+    const rows =
+        state.students.filter(
+            student =>
+                !query ||
+                student.full_name
+                    .toLowerCase()
+                    .includes(query)
+        );
+
+
+    $("#studentsTable")
+        .innerHTML =
+        rows.length
+        ? rows.map(
+            student => {
+
+                const price =
+                    Number(
+                        student.lesson_price || 0
+                    );
+
+                const balance =
+                    Number(
+                        student.balance || 0
+                    );
+
+                const remaining =
+                    price
+                    ? Math.floor(
+                        Math.max(
+                            balance,
+                            0
+                        ) / price
+                    )
+                    : 0;
+
+
+                return `
+
+                   <tr
+                        class="clickable"
+                        data-student="${student.id}"
+                    >
+
+                        <td>
+
+                            <b>
+                                ${esc(
+                                    student.full_name
+                                )}
+                            </b>
+
+                            ${
+                                student.parents?.length
+                                ? `
+                                    <div class="small">
+                                        ${esc(
+                                            student.parents[0]
+                                                .full_name
+                                        )}
+                                    </div>
+                                  `
+                                : ""
+                            }
+
+                        </td>
+
+
+                        <td>
+                            ${esc(
+                                student.course ||
+                                "Не выбран"
+                            )}
+                        </td>
+
+
+                        <td>
+                            ${money(price)}
+                        </td>
+
+
+                        <td>
+                            ${money(balance)}
+                        </td>
+
+
+                        <td>
+                            ${remaining}
+                        </td>
+
+                    </tr>
+
+                `;
+
+            }
+        ).join("")
+        :
+        `<tr>
+            <td
+                colspan="5"
+                class="empty"
+            >
+                Учеников нет
+            </td>
+         </tr>`;
+
+
+    document
+        .querySelectorAll(
+            "[data-student]"
+        )
+        .forEach(
+            row => {
+
+                row.onclick = () => {
+                    const studentId =
+                        String(row.dataset.student || "").trim();
+
+                    if (!studentId) {
+                        console.error("Не найден ID ученика", row);
+                        return;
+                    }
+
+                    openStudentEditor(studentId);
+                };
+
+            }
+        );
+
+}
+
+
+$("#studentSearch").oninput =
+    renderStudents;
+
+
+/* =========================================================
+   CREATE STUDENT
+========================================================= */
+
+$("#newStudent").onclick =
+    () => {
+
+        openStudentEditor(
+            null
+        );
+
+    };
+
+
+function courseOptions(
+    selected = ""
+) {
+
+    return COURSE_OPTIONS
+        .map(
+            value => `
+
+                <option
+                    value="${esc(value)}"
+                    ${
+                        value === selected
+                        ? "selected"
+                        : ""
+                    }
+                >
+
+                    ${
+                        value ||
+                        "Курс не выбран"
+                    }
+
+                </option>
+
+            `
+        )
+        .join("");
+
+}
+
+
+async function openStudentEditor(
+    studentId
+) {
+
+    const isCreateMode =
+        studentId === null ||
+        studentId === undefined ||
+        String(studentId).trim() === "";
+
+    if (!isCreateMode) {
+        studentId =
+            String(studentId).trim();
+    }
+
+    let student =
+        null;
+
+    let slots =
+        [];
+
+    if (studentId) {
+
+        [
+            student,
+            slots
+        ] =
+            await Promise.all([
+
+                api(
+                    `/students/${studentId}`
+                ),
+
+                api(
+                    `/students/${studentId}/schedule`
+                )
+
+            ]);
+
+    }
+
+
+    const parent =
+        student &&
+        student.parents &&
+        student.parents.length
+        ? student.parents[0]
+        : null;
+
+
+    openModal(
+
+        student
+        ? `Карточка ученика`
+        : `Новый ученик`,
+
+        `
+
+        <form
+            id="studentEditor"
+            class="form"
+        >
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label>
+                        Имя ученика
+                    </label>
+
+                    <input
+                        id="studentName"
+                        value="${
+                            esc(
+                                student?.full_name ||
+                                ""
+                            )
+                        }"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Дата рождения
+                    </label>
+
+                    <input
+                        id="studentBirth"
+                        type="date"
+                        value="${
+                            student?.birth_date ||
+                            ""
+                        }"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label>
+                        Курс
+                    </label>
+
+                    <select
+                        id="studentCourse"
+                    >
+
+                        ${
+                            courseOptions(
+                                student?.course ||
+                                ""
+                            )
+                        }
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Стоимость занятия
+                    </label>
+
+                    <input
+                        id="studentPrice"
+                        type="number"
+                        min="1"
+                        step="0.01"
+                        value="${
+                            student?.lesson_price ||
+                            ""
+                        }"
+                        required
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label>
+                        Баланс
+                    </label>
+
+                    <input
+                        id="studentBalance"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value="${
+                            student?.balance ||
+                            0
+                        }"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Примечание
+                    </label>
+
+                    <input
+                        id="studentNotes"
+                        value="${
+                            esc(
+                                student?.notes ||
+                                ""
+                            )
+                        }"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div
+                class="section-title"
+                style="margin-top:10px"
+            >
+                Родитель
+            </div>
+
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label>
+                        Имя родителя
+                    </label>
+
+                    <input
+                        id="parentName"
+                        value="${
+                            esc(
+                                parent?.full_name ||
+                                ""
+                            )
+                        }"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Телефон
+                    </label>
+
+                    <input
+                        id="parentPhone"
+                        value="${
+                            esc(
+                                parent?.phone ||
+                                ""
+                            )
+                        }"
+                        placeholder="+7..."
+                    >
+
+                </div>
+
+            </div>
+
+
+            ${
+                student
+                ? `
+
+                    <div
+                        class="section-title"
+                    >
+                        Расписание ученика
+                    </div>
+
+                    <div
+                        id="studentSlots"
+                    >
+
+                        ${
+                            slots.length
+                            ? slots.map(
+                                slot =>
+                                    renderStudentSlot(
+                                        slot
+                                    )
+                              ).join("")
+                            :
+                            `<div class="empty">
+                                Расписание не задано
+                             </div>`
+                        }
+
+                    </div>
+
+                    <button
+                        type="button"
+                        class="btn"
+                        id="addStudentSlot"
+                    >
+                        + Добавить день
+                    </button>
+
+                  `
+                : ""
+            }
+
+
+            <div class="form-actions">
+
+                ${
+                    student
+                    ? `
+                        <button
+                            type="button"
+                            class="btn"
+                            id="deleteStudent"
+                            style="
+                                margin-right:auto;
+                                color:#b42318"
+                        >
+                            Удалить ученика
+                        </button>
+                      `
+                    : ""
+                }
+
+
+                <button
+                    type="button"
+                    class="btn"
+                    id="saveStudent"
+                >
+                    Сохранить
+                </button>
+
+            </div>
+
+        </form>
+
+        `
+
+    );
+
+
+    $("#studentEditor").onsubmit =
+        event => {
+
+            event.preventDefault();
+
+        };
+
+
+    $("#saveStudent").onclick =
+        async () => {
+
+            const button =
+                $("#saveStudent");
+
+            button.disabled =
+                true;
+
+            button.textContent =
+                "Сохраняем...";
+
+
+            try {
+
+                let id =
+                    studentId;
+
+
+                const payload = {
+
+                    full_name:
+                        $("#studentName")
+                            .value
+                            .trim(),
+
+                    birth_date:
+                        $("#studentBirth")
+                            .value ||
+                        null,
+
+                    course:
+                        $("#studentCourse")
+                            .value ||
+                        null,
+
+                    notes:
+                        $("#studentNotes")
+                            .value
+                            .trim() ||
+                        null,
+
+                    balance:
+                        Number(
+                            $("#studentBalance")
+                                .value ||
+                            0
+                        ),
+
+                    lesson_price:
+                        Number(
+                            $("#studentPrice")
+                                .value
+                        )
+
+                };
+
+
+                if (!id) {
+
+                    const created =
+                        await api(
+                            "/students",
+                            {
+                                method:
+                                    "POST",
+                                body:
+                                    JSON.stringify(
+                                        payload
+                                    )
+                            }
+                        );
+
+                    id =
+                        created.id;
+
+                } else {
+
+                    await api(
+                        `/students/${id}`,
+                        {
+                            method:
+                                "PATCH",
+                            body:
+                                JSON.stringify(
+                                    payload
+                                )
+                        }
+                    );
+
+                }
+
+
+                await saveParent(
+                    id,
+                    parent
+                );
+
+
+                await loadStudents();
+
+                await loadDashboard();
+
+                await loadFinance();
+
+                closeModal();
+
+            } catch (e) {
+
+                alert(
+                    e.message
+                );
+
+            } finally {
+
+                button.disabled =
+                    false;
+
+                button.textContent =
+                    "Сохранить";
+
+            }
+
+        };
+
+
+    if (student) {
+
+        $("#deleteStudent")
+            .onclick =
+            async () => {
+
+                if (
+                    !confirm(
+                        `Удалить ученика "${student.full_name}"?\n\nУченик будет деактивирован и пропадёт из активного расписания.`
+                    )
+                ) {
+
+                    return;
+
+                }
+
+
+                try {
+
+                    await api(
+                        `/students/${student.id}`,
+                        {
+                            method:
+                                "DELETE"
+                        }
+                    );
+
+
+                    closeModal();
+
+                    await loadStudents();
+
+                    await loadDashboard();
+
+                    await loadCalendar();
+
+                } catch (e) {
+
+                    alert(
+                        e.message
+                    );
+
+                }
+
+            };
+
+
+        $("#addStudentSlot")
+            .onclick =
+            () =>
+                addStudentSlotEditor();
+
+    }
+
+}
+
+
+function renderStudentSlot(
+    slot
+) {
+
+    return `
+
+        <div
+            class="schedule-box"
+            data-slot-id="${slot.id}"
+        >
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label>
+                        День
+                    </label>
+
+                    <select
+                        class="slot-day"
+                    >
+
+                        ${DAYS.map(
+                            (day, index) =>
+                                `<option
+                                    value="${index}"
+                                    ${
+                                        slot.day_of_week ===
+                                        index
+                                        ? "selected"
+                                        : ""
+                                    }
+                                >
+                                    ${day}
+                                </option>`
+                        ).join("")}
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Время
+                    </label>
+
+                    <input
+                        class="slot-time"
+                        type="time"
+                        value="${slot.start_time.slice(0,5)}"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label>
+                        Тип
+                    </label>
+
+                    <select
+                        class="slot-kind"
+                    >
+
+                        <option
+                            value="lesson"
+                            ${
+                                slot.lesson_kind ===
+                                "lesson"
+                                ? "selected"
+                                : ""
+                            }
+                        >
+                            Урок
+                        </option>
+
+                        <option
+                            value="masterclass"
+                            ${
+                                slot.lesson_kind ===
+                                "masterclass"
+                                ? "selected"
+                                : ""
+                            }
+                        >
+                            Мастер-класс
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Длительность
+                    </label>
+
+                    <input
+                        class="slot-duration"
+                        type="number"
+                        min="15"
+                        max="480"
+                        value="${slot.duration_minutes}"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div
+                style="
+                    display:flex;
+                    justify-content:flex-end;
+                    gap:7px;
+                    margin-top:7px"
+            >
+
+                <button
+                    type="button"
+                    class="btn slot-save"
+                >
+                    Сохранить
+                </button>
+
+                <button
+                    type="button"
+                    class="btn slot-delete"
+                    style="color:#b42318"
+                >
+                    Удалить
+                </button>
+
+            </div>
+
+        </div>
+
+    `;
+
+}
+
+
+function addStudentSlotEditor() {
+
+    const wrapper =
+        $("#studentSlots");
+
+
+    if (
+        !wrapper ||
+        !currentEditingStudentId()
+    ) {
+
+        return;
+
+    }
+
+
+    const temp =
+        document.createElement(
+            "div"
+        );
+
+
+    temp.className =
+        "schedule-box";
+
+
+    temp.innerHTML = `
+
+        <div class="form-row">
+
+            <div class="form-group">
+
+                <label>
+                    День
+                </label>
+
+                <select
+                    class="new-slot-day"
+                >
+
+                    ${DAYS.map(
+                        (
+                            day,
+                            index
+                        ) =>
+                            `<option
+                                value="${index}"
+                            >
+                                ${day}
+                            </option>`
+                    ).join("")}
+
+                </select>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    Время
+                </label>
+
+                <input
+                    class="new-slot-time"
+                    type="time"
+                    value="17:00"
+                >
+
+            </div>
+
+        </div>
+
+
+        <div class="form-row">
+
+            <div class="form-group">
+
+                <label>
+                    Тип
+                </label>
+
+                <select
+                    class="new-slot-kind"
+                >
+
+                    <option value="lesson">
+                        Урок
+                    </option>
+
+                    <option value="masterclass">
+                        Мастер-класс
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    Длительность
+                </label>
+
+                <input
+                    class="new-slot-duration"
+                    type="number"
+                    value="60"
+                    min="15"
+                    max="480"
+                >
+
+            </div>
+
+        </div>
+
+
+        <div
+            class="form-actions"
+        >
+
+            <button
+                type="button"
+                class="btn primary"
+            >
+                Добавить
+            </button>
+
+        </div>
+
+    `;
+
+
+    temp
+        .querySelector("button")
+        .onclick =
+        async () => {
+
+            const button =
+                temp.querySelector(
+                    "button"
+                );
+
+            button.disabled =
+                true;
+
+            try {
+
+                await api(
+                    `/students/${currentEditingStudentId()}/schedule`,
+                    {
+                        method:
+                            "POST",
+                        body:
+                            JSON.stringify({
+
+                                lesson_kind:
+                                    temp
+                                        .querySelector(
+                                            ".new-slot-kind"
+                                        )
+                                        .value,
+
+                                day_of_week:
+                                    Number(
+                                        temp
+                                            .querySelector(
+                                                ".new-slot-day"
+                                            )
+                                            .value
+                                    ),
+
+                                start_time:
+                                    temp
+                                        .querySelector(
+                                            ".new-slot-time"
+                                        )
+                                        .value,
+
+                                duration_minutes:
+                                    Number(
+                                        temp
+                                            .querySelector(
+                                                ".new-slot-duration"
+                                            )
+                                            .value
+                                    ),
+
+                                valid_from:
+                                    dateKey(
+                                        new Date()
+                                    ),
+
+                                valid_until:
+                                    null
+
+                            })
+
+                    }
+                );
+
+
+                await loadStudents();
+
+                await loadCalendar();
+
+                openStudentEditor(
+                    currentEditingStudentId()
+                );
+
+            } catch (e) {
+
+                alert(
+                    e.message
+                );
+
+                button.disabled =
+                    false;
+
+            }
+
+        };
+
+
+    wrapper.appendChild(
+        temp
+    );
+
+}
+
+
+let editingStudentId =
+    null;
+
+
+function currentEditingStudentId() {
+
+    return editingStudentId;
+
+}
+
+
+const originalOpenStudentEditor =
+    openStudentEditor;
+
+
+async function openStudentEditorTracked(
+    studentId
+) {
+
+    editingStudentId =
+        studentId;
+
+    await originalOpenStudentEditor(
+        studentId
+    );
+
+
+    if (studentId) {
+
+        document
+            .querySelectorAll(
+                ".slot-save"
+            )
+            .forEach(
+                button =>
+                    button.onclick =
+                    async () => {
+
+                        const box =
+                            button.closest(
+                                "[data-slot-id]"
+                            );
+
+                        const slotId =
+                            box.dataset.slotId;
+
+
+                        try {
+
+                            button.disabled =
+                                true;
+
+                            await api(
+                                `/students/${studentId}/schedule/${slotId}`,
+                                {
+                                    method:
+                                        "PATCH",
+                                    body:
+                                        JSON.stringify({
+
+                                            lesson_kind:
+                                                box
+                                                    .querySelector(
+                                                        ".slot-kind"
+                                                    )
+                                                    .value,
+
+                                            day_of_week:
+                                                Number(
+                                                    box
+                                                        .querySelector(
+                                                            ".slot-day"
+                                                        )
+                                                        .value
+                                                ),
+
+                                            start_time:
+                                                box
+                                                    .querySelector(
+                                                        ".slot-time"
+                                                    )
+                                                    .value,
+
+                                            duration_minutes:
+                                                Number(
+                                                    box
+                                                        .querySelector(
+                                                            ".slot-duration"
+                                                        )
+                                                        .value
+                                                )
+
+                                        })
+                                }
+                            );
+
+
+                            await loadCalendar();
+
+                            alert(
+                                "Расписание сохранено."
+                            );
+
+                        } catch (e) {
+
+                            alert(
+                                e.message
+                            );
+
+                        } finally {
+
+                            button.disabled =
+                                false;
+
+                        }
+
+                    }
+            );
+
+
+        document
+            .querySelectorAll(
+                ".slot-delete"
+            )
+            .forEach(
+                button =>
+                    button.onclick =
+                    async () => {
+
+                        const box =
+                            button.closest(
+                                "[data-slot-id]"
+                            );
+
+                        if (
+                            !confirm(
+                                "Удалить этот день из расписания?"
+                            )
+                        )
+                            return;
+
+
+                        try {
+
+                            await api(
+                                `/students/${studentId}/schedule/${box.dataset.slotId}`,
+                                {
+                                    method:
+                                        "DELETE"
+                                }
+                            );
+
+
+                            await loadStudents();
+
+                            await loadCalendar();
+
+                            openStudentEditor(
+                                studentId
+                            );
+
+                        } catch (e) {
+
+                            alert(
+                                e.message
+                            );
+
+                        }
+
+                    }
+            );
+
+    }
+
+}
+
+
+window.openStudentEditor =
+    openStudentEditorTracked;
+
+
+/* =========================================================
+   PARENT
+========================================================= */
+
+async function saveParent(
+    studentId,
+    existingParent
+) {
+
+    const name =
+        $("#parentName")?.value
+            .trim();
+
+    const phone =
+        $("#parentPhone")?.value
+            .trim();
+
+
+    if (
+        !name &&
+        !phone
+    ) {
+
+        if (existingParent) {
+
+            await api(
+                `/students/${studentId}/parents/${existingParent.id}`,
+                {
+                    method:
+                        "DELETE"
+                }
+            );
+
+        }
+
+        return;
+
+    }
+
+
+    if (!name) {
+
+        throw new Error(
+            "Укажите имя родителя."
+        );
+
+    }
+
+
+    const payload = {
+
+        full_name:
+            name,
+
+        phone:
+            phone ||
+            null
+
+    };
+
+
+    if (
+        existingParent
+    ) {
+
+        await api(
+            `/parents/${existingParent.id}`,
+            {
+                method:
+                    "PATCH",
+                body:
+                    JSON.stringify(
+                        payload
+                    )
+            }
+        );
+
+    } else {
+
+        const parent =
+            await api(
+                "/parents",
+                {
+                    method:
+                        "POST",
+                    body:
+                        JSON.stringify(
+                            payload
+                        )
+                }
+            );
+
+
+        await api(
+            `/students/${studentId}/parents/${parent.id}`,
+            {
+                method:
+                    "POST"
+            }
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   CALENDAR
+========================================================= */
+
+function startOfWeek(
+    date
+) {
+
+    const d =
+        new Date(date);
+
+    d.setHours(
+        0,
+        0,
+        0,
+        0
+    );
+
+    const day =
+        d.getDay();
+
+    const diff =
+        day === 0
+        ? -6
+        : 1 - day;
+
+    d.setDate(
+        d.getDate() + diff
+    );
+
+    return d;
+
+}
+
+
+function endOfWeek(
+    date
+) {
+
+    const start =
+        startOfWeek(
+            date
+        );
+
+    const end =
+        new Date(start);
+
+    end.setDate(
+        start.getDate() + 6
+    );
+
+    return end;
+
+}
+
+
+async function loadCalendar() {
+
+    try {
+
+        let endpoint;
+
+
+        if (
+            state.calendar.view ===
+            "month"
+        ) {
+
+            const month =
+                new Date(
+                    state.calendar.date
+                );
+
+            month.setDate(1);
+
+            endpoint =
+                `/schedule/month?month_start=${dateKey(month)}`;
+
+        } else {
+
+            const start =
+                startOfWeek(
+                    state.calendar.date
+                );
+
+            endpoint =
+                `/schedule/week?week_start=${dateKey(start)}`;
+
+        }
+
+
+        state.calendar.items =
+            await api(
+                endpoint
+            );
+
+
+        renderCalendar();
+
+    } catch (e) {
+
+        $("#calendar")
+            .innerHTML =
+            `<div class="empty">
+                ${esc(e.message)}
+            </div>`;
+
+    }
+
+}
+
+
+
+
+function renderCalendar() {
+
+    const start =
+        startOfWeek(
+            state.calendar.date
+        );
+
+    const end =
+        endOfWeek(
+            state.calendar.date
+        );
+
+
+    $("#calendarTitle")
+        .textContent =
+        `${start.toLocaleDateString("ru-RU", {
+            day:"numeric",
+            month:"long"
+        })} — ${end.toLocaleDateString("ru-RU", {
+            day:"numeric",
+            month:"long",
+            year:"numeric"
+        })}`;
+
+
+    if (
+        state.calendar.view ===
+        "month"
+    ) {
+
+        renderMonthCalendar(
+            state.calendar.date
+        );
+
+    }
+
+
+    if (
+        state.calendar.view ===
+        "week"
+    ) {
+
+        renderWeekCalendar(
+            start
+        );
+
+    }
+
+
+    if (
+        state.calendar.view ===
+        "list"
+    ) {
+
+        renderListCalendar(
+            start
+        );
+
+    }
+
+
+    if (
+        state.calendar.view ===
+        "day"
+    ) {
+
+        renderDayCalendar(
+            state.calendar.date
+        );
+
+    }
+
+}
+
+
+function itemsForDate(
+    date
+) {
+
+    const key =
+        dateKey(date);
+
+
+    return state.calendar.items
+        .filter(
+            item =>
+                dateKey(
+                    new Date(
+                        item.start_time
+                    )
+                ) === key
+        )
+        .sort(
+            (
+                a,
+                b
+            ) =>
+                new Date(a.start_time) -
+                new Date(b.start_time)
+        );
+
+}
+
+function getCalendarStatus(
+    item
+) {
+
+    if (
+        item.item_type !==
+        "lesson"
+    ) {
+
+        return {
+            icon: "",
+            title: ""
+        };
+
+    }
+
+
+    const end =
+        new Date(
+            item.end_time
+        );
+
+
+    if (
+        Date.now() >=
+        end.getTime()
+    ) {
+
+        return {
+            icon: "✓",
+            title: "Проведено"
+        };
+
+    }
+
+
+    return {
+        icon: "◷",
+        title: "Запланировано"
+    };
+
+}
+
+
+function getCalendarIcon(
+    item
+) {
+
+    if (
+        item.item_type ===
+        "event"
+    ) {
+
+        return "•";
+
+    }
+
+
+    if (
+        item.lesson_kind ===
+        "masterclass"
+    ) {
+
+        return "◆";
+
+    }
+
+
+    return "●";
+
+}
+
+function renderWeekCalendar(
+    start
+) {
+
+    const HOURS = [];
+
+    for (
+        let hour = 7;
+        hour <= 23;
+        hour++
+    ) {
+
+        HOURS.push(
+            hour
+        );
+
+    }
+
+
+    let html = `
+
+        <div class="calendar-scroll">
+
+            <div class="week-calendar">
+
+                <div class="time-column">
+
+                    <div
+                        class="day-header"
+                        style="
+                            cursor:default
+                        "
+                    ></div>
+
+                    ${
+                        HOURS.map(
+                            hour =>
+                                `
+                                <div
+                                    class="time-label"
+                                >
+                                    ${pad(hour)}:00
+                                </div>
+                                `
+                        ).join("")
+                    }
+
+                </div>
+
+    `;
+
+
+    for (
+        let dayIndex = 0;
+        dayIndex < 7;
+        dayIndex++
+    ) {
+
+        const date =
+            new Date(start);
+
+        date.setDate(
+            start.getDate() +
+            dayIndex
+        );
+
+
+        const items =
+            itemsForDate(
+                date
+            );
+
+
+        html += `
+
+            <div class="day-column">
+
+                <div
+                    class="day-header"
+                    onclick="
+                        state.calendar.date =
+                            new Date(
+                                '${dateKey(date)}T12:00:00'
+                            );
+
+                        state.calendar.view =
+                            'day';
+
+                        updateCalendarViewButtons();
+
+                        renderCalendar();
+                    "
+                >
+
+                    <span class="day-number">
+                        ${date.getDate()}
+                    </span>
+
+                    <span class="day-name">
+                        ${
+                            DAYS_SHORT[
+                                dayIndex
+                            ]
+                        }
+                    </span>
+
+                </div>
+
+        `;
+
+
+        HOURS.forEach(
+            () => {
+
+                html += `
+                    <div class="hour-line"></div>
+                `;
+
+            }
+        );
+
+
+        items.forEach(
+            item => {
+
+                const dt =
+                    new Date(
+                        item.start_time
+                    );
+
+
+                const end =
+                    new Date(
+                        item.end_time
+                    );
+
+
+                const minutes =
+                    dt.getHours() * 60 +
+                    dt.getMinutes() -
+                    7 * 60;
+
+
+                const duration =
+                    Math.max(
+                        30,
+                        (
+                            end - dt
+                        ) / 60000
+                    );
+
+
+                const top =
+                    42 +
+                    minutes *
+                    (30 / 60);
+
+
+                const height =
+                    Math.max(
+                        22,
+                        duration *
+                        (30 / 60)
+                    );
+
+
+                const className =
+                    item.item_type ===
+                    "event"
+
+                    ? "personal"
+
+                    : item.lesson_kind ===
+                      "masterclass"
+
+                    ? "masterclass"
+
+                    : "";
+
+
+                const status =
+                    getCalendarStatus(
+                        item
+                    );
+
+
+                const icon =
+                    getCalendarIcon(
+                        item
+                    );
+
+
+                html += `
+
+                    <div
+                        class="
+                            calendar-event
+                            ${className}
+                        "
+                        style="
+                            top:${top}px;
+                            height:${height}px;
+                        "
+                        onclick="
+                            event.stopPropagation();
+
+                            openCalendarItem(
+                                '${item.item_id}',
+                                '${item.item_type}'
+                            );
+                        "
+                    >
+
+                        <div
+                            class="calendar-event-title"
+                        >
+
+                            <span
+                                class="calendar-icon"
+                                title="${status.title}"
+                            >
+                                ${icon}
+                            </span>
+
+                            ${esc(
+                                item.student_name ||
+                                item.title
+                            )}
+
+                        </div>
+
+
+                        <div
+                            class="calendar-event-meta"
+                        >
+
+                            ${dt.toLocaleTimeString(
+                                "ru-RU",
+                                {
+                                    hour:
+                                        "2-digit",
+                                    minute:
+                                        "2-digit"
+                                }
+                            )}
+
+                            ${
+                                status.icon
+                                ? ` · ${status.icon}`
+                                : ""
+                            }
+
+                        </div>
+
+                    </div>
+
+                `;
+
+            }
+        );
+
+
+        html += `
+            </div>
+        `;
+
+    }
+
+
+    html += `
+            </div>
+        </div>
+    `;
+
+
+    $("#calendar")
+        .innerHTML =
+        html;
+
+}
+
+function renderMonthCalendar(
+    monthDate
+) {
+
+    const year =
+        monthDate.getFullYear();
+
+    const month =
+        monthDate.getMonth();
+
+    const first =
+        new Date(
+            year,
+            month,
+            1
+        );
+
+    const last =
+        new Date(
+            year,
+            month + 1,
+            0
+        );
+
+    let firstWeekday =
+        first.getDay();
+
+    firstWeekday =
+        firstWeekday === 0
+        ? 6
+        : firstWeekday - 1;
+
+    const daysInMonth =
+        last.getDate();
+
+    const cells = [];
+
+    for (
+        let i = 0;
+        i < firstWeekday;
+        i++
+    ) {
+
+        cells.push(null);
+
+    }
+
+
+    for (
+        let day = 1;
+        day <= daysInMonth;
+        day++
+    ) {
+
+        cells.push(
+            new Date(
+                year,
+                month,
+                day
+            )
+        );
+
+    }
+
+
+    while (
+        cells.length % 7 !== 0
+    ) {
+
+        cells.push(null);
+
+    }
+
+
+    let html = `
+
+        <div
+            style="
+                display:grid;
+                grid-template-columns:
+                    repeat(7,1fr);
+                min-width:700px;
+                border-top:1px solid var(--border);
+                border-left:1px solid var(--border);
+            "
+        >
+
+    `;
+
+
+    DAYS_SHORT.forEach(
+        day => {
+
+            html += `
+
+                <div
+                    style="
+                        padding:10px 8px;
+                        text-align:center;
+                        background:#fafbfe;
+                        border-right:1px solid var(--border);
+                        border-bottom:1px solid var(--border);
+                        font-size:12px;
+                        font-weight:700;
+                        color:var(--muted);
+                    "
+                >
+                    ${day}
+                </div>
+
+            `;
+
+        }
+    );
+
+
+    cells.forEach(
+        date => {
+
+            if (!date) {
+
+                html += `
+
+                    <div
+                        style="
+                            min-height:110px;
+                            background:#fafbfc;
+                            border-right:1px solid var(--border);
+                            border-bottom:1px solid var(--border);
+                        "
+                    ></div>
+
+                `;
+
+                return;
+
+            }
+
+
+            const items =
+                itemsForDate(
+                    date
+                );
+
+
+            const today =
+                dateKey(date) ===
+                dateKey(
+                    new Date()
+                );
+
+
+            html += `
+
+                <div
+                    style="
+                        min-height:110px;
+                        padding:6px;
+                        border-right:1px solid var(--border);
+                        border-bottom:1px solid var(--border);
+                        background:${
+                            today
+                            ? "#f3f4ff"
+                            : "#fff"
+                        };
+                        cursor:pointer;
+                    "
+                    onclick="
+                        state.calendar.date =
+                            new Date(
+                                '${dateKey(date)}T12:00:00'
+                            );
+                        state.calendar.view = 'day';
+                        updateCalendarViewButtons();
+                        renderCalendar();
+                    "
+                >
+
+                    <div
+                        style="
+                            font-weight:800;
+                            font-size:13px;
+                            margin-bottom:5px;
+                        "
+                    >
+
+                        ${
+                            today
+                            ? `<span style="
+                                display:inline-grid;
+                                place-items:center;
+                                width:26px;
+                                height:26px;
+                                border-radius:50%;
+                                background:var(--primary);
+                                color:white;
+                              ">
+                                ${date.getDate()}
+                               </span>`
+                            : date.getDate()
+                        }
+
+                    </div>
+
+
+                    ${
+                        items
+                            .slice(0, 4)
+                            .map(
+                                item => {
+
+                                    const label =
+                                        item.item_type ===
+                                        "event"
+                                        ? item.title
+                                        : (
+                                            item.lesson_kind ===
+                                            "masterclass"
+                                            ? `Мастер-класс · ${item.student_name}`
+                                            : `Урок · ${item.student_name}`
+                                        );
+
+                                    return `
+
+                                        <div
+                                            style="
+                                                margin-bottom:3px;
+                                                padding:4px 5px;
+                                                border-radius:5px;
+                                                background:${
+                                                    item.item_type ===
+                                                    "event"
+                                                    ? "#475569"
+                                                    : item.lesson_kind ===
+                                                      "masterclass"
+                                                    ? "#b45309"
+                                                    : "var(--primary)"
+                                                };
+                                                color:white;
+                                                font-size:10px;
+                                                overflow:hidden;
+                                                white-space:nowrap;
+                                                text-overflow:ellipsis;
+                                            "
+                                            onclick="
+                                                event.stopPropagation();
+                                                openCalendarItem(
+                                                    '${item.item_id}',
+                                                    '${item.item_type}'
+                                                );
+                                            "
+                                        >
+
+                                            ${
+                                                new Date(
+                                                    item.start_time
+                                                ).toLocaleTimeString(
+                                                    "ru-RU",
+                                                    {
+                                                        hour:"2-digit",
+                                                        minute:"2-digit"
+                                                    }
+                                                )
+                                            }
+
+                                            ·
+
+                                            ${esc(
+                                                label
+                                            )}
+
+                                        </div>
+
+                                    `;
+
+                                }
+                            )
+                            .join("")
+                    }
+
+
+                    ${
+                        items.length > 4
+                        ? `
+                            <div
+                                style="
+                                    font-size:10px;
+                                    color:var(--muted);
+                                    margin-top:4px;
+                                "
+                            >
+                                ещё ${items.length - 4}
+                            </div>
+                          `
+                        : ""
+                    }
+
+                </div>
+
+            `;
+
+        }
+    );
+
+
+    html += `
+        </div>
+    `;
+
+
+    $("#calendar")
+        .innerHTML =
+        `
+            <div
+                class="calendar-scroll"
+                style="overflow-x:auto"
+            >
+                ${html}
+            </div>
+        `;
+
+}
+
+function renderListCalendar(
+    start
+) {
+
+    let html = "";
+
+    for (
+        let i = 0;
+        i < 7;
+        i++
+    ) {
+
+        const date =
+            new Date(start);
+
+        date.setDate(
+            start.getDate() +
+            i
+        );
+
+
+        const items =
+            itemsForDate(
+                date
+            );
+
+
+        html += `
+
+            <details
+                class="list-day"
+                ${
+                    i ===
+                    new Date().getDay() - 1
+                    ? "open"
+                    : ""
+                }
+            >
+
+                <summary
+                    style="
+                        cursor:pointer;
+                        font-weight:800;
+                        padding:7px 2px;
+                        list-style:none;
+                        display:flex;
+                        align-items:center;
+                        justify-content:space-between;
+                    "
+                >
+
+                    <span>
+
+                        ${date.toLocaleDateString(
+                            "ru-RU",
+                            {
+                                weekday:
+                                    "long",
+                                day:
+                                    "numeric",
+                                month:
+                                    "long"
+                            }
+                        )}
+
+                    </span>
+
+                    <span
+                        style="
+                            font-size:11px;
+                            color:var(--muted);
+                        "
+                    >
+                        ${items.length}
+                    </span>
+
+                </summary>
+
+
+                <div
+                    style="
+                        margin-top:9px;
+                    "
+                >
+
+                    ${
+                        items.length
+                        ? items.map(
+                            item =>
+                                calendarItemHtml(
+                                    item
+                                )
+                          ).join("")
+                        : `
+                            <div class="small">
+                                Нет записей
+                            </div>
+                          `
+                    }
+
+                </div>
+
+            </details>
+
+        `;
+
+    }
+
+
+    $("#calendar")
+        .innerHTML =
+        `
+            <div
+                class="list-calendar"
+            >
+                ${html}
+            </div>
+        `;
+
+}
+
+function renderDayCalendar(
+    date
+) {
+
+    const items =
+        itemsForDate(
+            date
+        );
+
+
+    $("#calendar")
+        .innerHTML = `
+
+            <div class="day-calendar">
+
+                <div class="day-title">
+
+                    ${date.toLocaleDateString(
+                        "ru-RU",
+                        {
+                            weekday:
+                                "long",
+                            day:
+                                "numeric",
+                            month:
+                                "long",
+                            year:
+                                "numeric"
+                        }
+                    )}
+
+                </div>
+
+                ${
+                    items.length
+                    ? items.map(
+                        item =>
+                            calendarItemHtml(
+                                item
+                            )
+                      ).join("")
+                    : `<div class="empty">
+                        На этот день записей нет
+                       </div>`
+                }
+
+            </div>
+
+        `;
+
+}
+
+function getVisibleLessonStatus(
+    item
+) {
+
+    if (
+        item.item_type !==
+        "lesson"
+    ) {
+
+        return "";
+
+    }
+
+
+    const end =
+        new Date(
+            item.end_time
+        );
+
+
+    if (
+        Date.now() >=
+        end.getTime()
+    ) {
+
+        return "Проведено";
+
+    }
+
+
+    return "Запланировано";
+
+}
+
+function calendarItemHtml(
+    item
+) {
+
+    const status =
+        getCalendarStatus(
+            item
+        );
+
+
+    const icon =
+        getCalendarIcon(
+            item
+        );
+
+
+    const typeText =
+        item.item_type ===
+        "event"
+
+        ? "Событие"
+
+        : item.lesson_kind ===
+          "masterclass"
+
+        ? "Мастер-класс"
+
+        : "Урок";
+
+
+    return `
+
+        <div
+            class="calendar-item"
+            onclick="
+                openCalendarItem(
+                    '${item.item_id}',
+                    '${item.item_type}'
+                )
+            "
+        >
+
+        <div
+            class="calendar-item"
+            onclick="
+                openCalendarItem(
+                    '${item.item_id}',
+                    '${item.item_type}'
+                )
+            "
+        >
+
+            <div
+                style="
+                    display:flex;
+                    gap:9px;
+                    align-items:center;
+                "
+            >
+
+                <span
+                    class="
+                        status-icon
+                        ${
+                            status.icon === "✓"
+                            ? "completed"
+                            : status.icon === "◷"
+                            ? "planned"
+                            : ""
+                        }
+                    "
+                    title="${status.title || 'Событие'}"
+                >
+                    ${
+                        status.icon ||
+                        icon
+                    }
+                </span>
+
+
+                <div>
+
+                    <b>
+                        ${esc(item.title)}
+                    </b>
+
+                    <div class="small">
+                        ${formatDateTime(
+                            item.start_time
+                        )}
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+            <span
+                style="
+                    font-size:11px;
+                    color:var(--muted);
+                    white-space:nowrap;
+                "
+            >
+                ${icon}
+            </span>
+
+        </div>
+
+    `;
+
+}
+
+document
+    .querySelectorAll(
+        "[data-calendar-view]"
+    )
+    .forEach(
+        button => {
+
+            button.onclick =
+                () => {
+
+                    state.calendar.view =
+                        button.dataset.calendarView;
+
+
+                    document
+                        .querySelectorAll(
+                            "[data-calendar-view]"
+                        )
+                        .forEach(
+                            x =>
+                                x.classList.toggle(
+                                    "active",
+                                    x === button
+                                )
+                        );
+
+
+                    renderCalendar();
+
+                };
+
+        }
+    );
+
+
+$("#prevPeriod").onclick =
+    async () => {
+
+        const d =
+            state.calendar.date;
+
+
+        if (
+            state.calendar.view ===
+            "day"
+        ) {
+
+            d.setDate(
+                d.getDate() -
+                1
+            );
+
+        } else if (
+            state.calendar.view ===
+            "month"
+        ) {
+
+            d.setMonth(
+                d.getMonth() -
+                1
+            );
+
+            d.setDate(1);
+
+        } else {
+
+            d.setDate(
+                d.getDate() -
+                7
+            );
+
+        }
+
+
+        await loadCalendar();
+
+    };
+
+$("#nextPeriod").onclick =
+    async () => {
+
+        const d =
+            state.calendar.date;
+
+
+        if (
+            state.calendar.view ===
+            "day"
+        ) {
+
+            d.setDate(
+                d.getDate() +
+                1
+            );
+
+        } else if (
+            state.calendar.view ===
+            "month"
+        ) {
+
+            d.setMonth(
+                d.getMonth() +
+                1
+            );
+
+            d.setDate(1);
+
+        } else {
+
+            d.setDate(
+                d.getDate() +
+                7
+            );
+
+        }
+
+
+        await loadCalendar();
+
+    };
+
+$("#todayPeriod").onclick =
+    async () => {
+
+        state.calendar.date =
+            new Date();
+
+        await loadCalendar();
+
+    };
+
+
+/* =========================================================
+   CALENDAR ITEM EDIT
+========================================================= */
+
+async function openCalendarItem(
+    id,
+    type
+) {
+
+    if (
+        type ===
+        "lesson"
+    ) {
+
+        const item =
+            state.calendar.items
+                .find(
+                    x =>
+                        String(
+                            x.item_id
+                        ) ===
+                        String(id)
+                );
+
+
+        if (!item)
+            return;
+
+
+        const studentOptions =
+            state.students.map(
+                student =>
+                    `<option
+                        value="${student.id}"
+                        ${
+                            String(
+                                student.id
+                            ) ===
+                            String(
+                                item.student_id
+                            )
+                            ? "selected"
+                            : ""
+                        }
+                    >
+                        ${esc(
+                            student.full_name
+                        )}
+                     </option>`
+            ).join("");
+
+
+        openModal(
+
+            "Редактирование занятия",
+
+            `
+
+                <div class="form">
+
+                    <div class="form-row">
+
+                        <div class="form-group">
+
+                            <label>
+                                Ученик
+                            </label>
+
+                            <select
+                                id="editStudent"
+                            >
+
+                                ${studentOptions}
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label>
+                                Тип
+                            </label>
+
+                            <select
+                                id="editKind"
+                            >
+
+                                <option
+                                    value="lesson"
+                                    ${
+                                        item.lesson_kind ===
+                                        "lesson"
+                                        ? "selected"
+                                        : ""
+                                    }
+                                >
+                                    Урок
+                                </option>
+
+                                <option
+                                    value="masterclass"
+                                    ${
+                                        item.lesson_kind ===
+                                        "masterclass"
+                                        ? "selected"
+                                        : ""
+                                    }
+                                >
+                                    Мастер-класс
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-row">
+
+                        <div class="form-group">
+
+                            <label>
+                                Дата и время
+                            </label>
+
+                            <input
+                                id="editStart"
+                                type="datetime-local"
+                                value="${toLocalInput(
+                                    item.start_time
+                                )}"
+                            >
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label>
+                                Длительность
+                            </label>
+
+                            <input
+                                id="editDuration"
+                                type="number"
+                                min="15"
+                                max="480"
+                                value="${
+                                    Math.round(
+                                        (
+                                            new Date(
+                                                item.end_time
+                                            ) -
+                                            new Date(
+                                                item.start_time
+                                            )
+                                        ) / 60000
+                                    )
+                                }"
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-row">
+
+                        <div class="form-group">
+
+                            <label>
+                                Статус
+                            </label>
+
+                            <select
+                                id="editStatus"
+                            >
+
+                                ${[
+                                    ["scheduled","Запланировано"],
+                                    ["completed","Проведено"],
+                                    ["cancelled","Отменено"],
+                                    ["rescheduled","Перенесено"]
+                                ].map(
+                                    x =>
+                                        `<option
+                                            value="${x[0]}"
+                                            ${
+                                                item.lesson_status ===
+                                                x[0]
+                                                ? "selected"
+                                                : ""
+                                            }
+                                        >
+                                            ${x[1]}
+                                         </option>`
+                                ).join("")}
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label>
+                                Цена
+                            </label>
+
+                            <input
+                                id="editPrice"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value="${
+                                    item.lesson_price ||
+                                    0
+                                }"
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>
+                            Тема
+                        </label>
+
+                        <input
+                            id="editTopic"
+                            value="${
+                                esc(
+                                    item.topic ||
+                                    ""
+                                )
+                            }"
+                        >
+
+                    </div>
+
+
+                    <div class="form-actions">
+
+                        <button
+                            type="button"
+                            class="btn"
+                            style="
+                                margin-right:auto;
+                                color:#b42318"
+                            "
+                            id="deleteCalendarItem"
+                        >
+                            Удалить
+                        </button>
+
+
+                        <button
+                            type="button"
+                            class="btn primary"
+                            id="saveCalendarItem"
+                        >
+                            Сохранить
+                        </button>
+
+                    </div>
+
+                </div>
+
+            `
+
+        );
+
+
+        $("#saveCalendarItem")
+            .onclick =
+            async () => {
+
+                const button =
+                    $("#saveCalendarItem");
+
+                button.disabled =
+                    true;
+
+                try {
+
+                    await api(
+                        `/lessons/${id}`,
+                        {
+                            method:
+                                "PATCH",
+                            body:
+                                JSON.stringify({
+
+                                    lesson_kind:
+                                        $("#editKind")
+                                            .value,
+
+                                    start_time:
+                                        new Date(
+                                            $("#editStart")
+                                                .value
+                                        ).toISOString(),
+
+                                    duration_minutes:
+                                        Number(
+                                            $("#editDuration")
+                                                .value
+                                        ),
+
+                                    status:
+                                        $("#editStatus")
+                                            .value,
+
+                                    price:
+                                        Number(
+                                            $("#editPrice")
+                                                .value
+                                        ),
+
+                                    topic:
+                                        $("#editTopic")
+                                            .value
+                                            .trim() ||
+                                        null
+
+                                })
+                        }
+                    );
+
+
+                    closeModal();
+
+                    await loadCalendar();
+
+                    await loadDashboard();
+
+                    await loadStudents();
+
+                } catch (e) {
+
+                    alert(
+                        e.message
+                    );
+
+                } finally {
+
+                    button.disabled =
+                        false;
+
+                }
+
+            };
+
+
+        $("#deleteCalendarItem")
+            .onclick =
+            async () => {
+
+                if (
+                    !confirm(
+                        "Удалить это занятие?"
+                    )
+                )
+                    return;
+
+
+                try {
+
+                    await api(
+                        `/lessons/${id}`,
+                        {
+                            method:
+                                "DELETE"
+                        }
+                    );
+
+
+                    closeModal();
+
+                    await loadCalendar();
+
+                    await loadDashboard();
+
+                    await loadStudents();
+
+                } catch (e) {
+
+                    alert(
+                        e.message
+                    );
+
+                }
+
+            };
+
+
+    } else {
+
+        openEventEditor(
+            id
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   PERSONAL EVENT
+========================================================= */
+
+$("#addEvent").onclick =
+    () =>
+        openEventEditor(
+            null
+        );
+
+
+async function openEventEditor(
+    id
+) {
+
+    const item =
+        id
+        ? state.calendar.items
+            .find(
+                x =>
+                    String(
+                        x.item_id
+                    ) ===
+                    String(id)
+            )
+        : null;
+
+
+    openModal(
+
+        id
+        ? "Редактирование события"
+        : "Новое событие",
+
+        `
+
+            <div class="form">
+
+                <div class="form-group">
+
+                    <label>
+                        Название
+                    </label>
+
+                    <input
+                        id="eventTitle"
+                        value="${
+                            esc(
+                                item?.title ||
+                                ""
+                            )
+                        }"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-row">
+
+                    <div class="form-group">
+
+                        <label>
+                            Тип
+                        </label>
+
+                        <select
+                            id="eventType"
+                        >
+
+                            <option
+                                value="personal"
+                                ${
+                                    item?.event_type ===
+                                    "personal"
+                                    ? "selected"
+                                    : ""
+                                }
+                            >
+                                Личное
+                            </option>
+
+                            <option
+                                value="meeting"
+                                ${
+                                    item?.event_type ===
+                                    "meeting"
+                                    ? "selected"
+                                    : ""
+                                }
+                            >
+                                Встреча
+                            </option>
+
+                            <option
+                                value="reminder"
+                                ${
+                                    item?.event_type ===
+                                    "reminder"
+                                    ? "selected"
+                                    : ""
+                                }
+                            >
+                                Напоминание
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>
+                            Место
+                        </label>
+
+                        <input
+                            id="eventLocation"
+                            value="${
+                                esc(
+                                    item?.location ||
+                                    ""
+                                )
+                            }"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-row">
+
+                    <div class="form-group">
+
+                        <label>
+                            Начало
+                        </label>
+
+                        <input
+                            id="eventStart"
+                            type="datetime-local"
+                            value="${
+                                toLocalInput(
+                                    item?.start_time
+                                )
+                            }"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>
+                            Конец
+                        </label>
+
+                        <input
+                            id="eventEnd"
+                            type="datetime-local"
+                            value="${
+                                toLocalInput(
+                                    item?.end_time
+                                )
+                            }"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Заметки
+                    </label>
+
+                    <textarea
+                        id="eventNotes"
+                        rows="3"
+                    >${
+                        esc(
+                            item?.notes ||
+                            ""
+                        )
+                    }</textarea>
+
+                </div>
+
+
+                <div class="form-actions">
+
+                    ${
+                        id
+                        ? `
+                            <button
+                                type="button"
+                                class="btn"
+                                style="
+                                    margin-right:auto;
+                                    color:#b42318"
+                                "
+                                id="deleteEvent"
+                            >
+                                Удалить
+                            </button>
+                          `
+                        : ""
+                    }
+
+
+                    <button
+                        type="button"
+                        class="btn primary"
+                        id="saveEvent"
+                    >
+                        Сохранить
+                    </button>
+
+                </div>
+
+            </div>
+
+        `
+
+    );
+
+
+    $("#saveEvent")
+        .onclick =
+        async () => {
+
+            const button =
+                $("#saveEvent");
+
+            button.disabled =
+                true;
+
+
+            try {
+
+                const payload = {
+
+                    title:
+                        $("#eventTitle")
+                            .value
+                            .trim(),
+
+                    event_type:
+                        $("#eventType")
+                            .value,
+
+                    start_time:
+                        new Date(
+                            $("#eventStart")
+                                .value
+                        ).toISOString(),
+
+                    end_time:
+                        new Date(
+                            $("#eventEnd")
+                                .value
+                        ).toISOString(),
+
+                    location:
+                        $("#eventLocation")
+                            .value
+                            .trim() ||
+                        null,
+
+                    notes:
+                        $("#eventNotes")
+                            .value
+                            .trim() ||
+                        null
+
+                };
+
+
+                if (id) {
+
+                    await api(
+                        `/events/${id}`,
+                        {
+                            method:
+                                "PATCH",
+                            body:
+                                JSON.stringify(
+                                    payload
+                                )
+                        }
+                    );
+
+                } else {
+
+                    await api(
+                        "/events",
+                        {
+                            method:
+                                "POST",
+                            body:
+                                JSON.stringify(
+                                    payload
+                                )
+                        }
+                    );
+
+                }
+
+
+                closeModal();
+
+                await loadCalendar();
+
+                await loadDashboard();
+
+            } catch (e) {
+
+                alert(
+                    e.message
+                );
+
+            } finally {
+
+                button.disabled =
+                    false;
+
+            }
+
+        };
+
+
+    if (id) {
+
+        $("#deleteEvent")
+            .onclick =
+            async () => {
+
+                if (
+                    !confirm(
+                        "Удалить событие?"
+                    )
+                )
+                    return;
+
+
+                try {
+
+                    await api(
+                        `/events/${id}`,
+                        {
+                            method:
+                                "DELETE"
+                        }
+                    );
+
+
+                    closeModal();
+
+                    await loadCalendar();
+
+                    await loadDashboard();
+
+                } catch (e) {
+
+                    alert(
+                        e.message
+                    );
+
+                }
+
+            };
+
+    }
+
+}
+
+
+/* =========================================================
+   ADD LESSON — 1-3 DAYS PER WEEK
+========================================================= */
+
+$("#addLesson").onclick =
+    () => {
+
+        if (
+            !state.students.length
+        ) {
+
+            loadStudents()
+                .then(
+                    () =>
+                        openLessonCreator()
+                );
+
+        } else {
+
+            openLessonCreator();
+
+        }
+
+    };
+
+
+function openLessonCreator() {
+
+    openModal(
+
+        "Добавить урок",
+
+        `
+
+            <div class="form">
+
+                <div class="form-row">
+
+                    <div class="form-group">
+
+                        <label>
+                            Ученик
+                        </label>
+
+                        <select
+                            id="newLessonStudent"
+                        >
+
+                            ${state.students
+                                .filter(
+                                    x =>
+                                        x.is_active
+                                )
+                                .map(
+                                    student =>
+                                        `<option
+                                            value="${student.id}"
+                                        >
+                                            ${esc(
+                                                student.full_name
+                                            )}
+                                         </option>`
+                                )
+                                .join("")}
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>
+                            Что добавляем
+                        </label>
+
+                        <select
+                            id="newLessonKind"
+                        >
+
+                            <option value="lesson">
+                                Урок
+                            </option>
+
+                            <option value="masterclass">
+                                Мастер-класс
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-row">
+
+                    <div class="form-group">
+
+                        <label>
+                            Занятий в неделю
+                        </label>
+
+                        <select
+                            id="lessonsPerWeek"
+                        >
+
+                            <option value="1">
+                                1
+                            </option>
+
+                            <option value="2">
+                                2
+                            </option>
+
+                            <option value="3">
+                                3
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>
+                            Длительность
+                        </label>
+
+                        <select
+                            id="newDuration"
+                        >
+
+                            <option value="60">
+                                60 минут
+                            </option>
+
+                            <option value="45">
+                                45 минут
+                            </option>
+
+                            <option value="90">
+                                90 минут
+                            </option>
+
+                            <option value="120">
+                                120 минут
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="weeklySlots"
+                ></div>
+
+
+                <div class="form-actions">
+
+                    <button
+                        type="button"
+                        class="btn primary"
+                        id="saveWeeklySchedule"
+                    >
+                        Сохранить
+                    </button>
+
+                </div>
+
+            </div>
+
+        `
+
+    );
+
+
+    renderWeeklySlotInputs();
+
+
+    $("#lessonsPerWeek")
+        .onchange =
+        renderWeeklySlotInputs;
+
+
+    $("#saveWeeklySchedule")
+        .onclick =
+        saveWeeklySchedule;
+
+}
+
+
+function renderWeeklySlotInputs() {
+
+    const count =
+        Number(
+            $("#lessonsPerWeek")
+                .value
+        );
+
+
+    const html =
+        Array
+            .from(
+                {
+                    length:
+                        count
+                },
+                (
+                    _,
+                    index
+                ) => `
+
+                    <div
+                        class="schedule-box"
+                    >
+
+                        <b>
+                            Занятие ${index + 1}
+                        </b>
+
+                        <div
+                            class="form-row"
+                            style="
+                                margin-top:10px"
+                        >
+
+                            <div class="form-group">
+
+                                <label>
+                                    День
+                                </label>
+
+                                <select
+                                    class="weekly-day"
+                                >
+
+                                    ${DAYS.map(
+                                        (
+                                            day,
+                                            dayIndex
+                                        ) =>
+                                            `<option
+                                                value="${dayIndex}"
+                                            >
+                                                ${day}
+                                             </option>`
+                                    ).join("")}
+
+                                </select>
+
+                            </div>
+
+
+                            <div class="form-group">
+
+                                <label>
+                                    Время
+                                </label>
+
+                                <input
+                                    class="weekly-time"
+                                    type="time"
+                                    value="${
+                                        index === 0
+                                        ? "17:00"
+                                        : "18:00"
+                                    }"
+                                >
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                `
+            )
+            .join("");
+
+
+    $("#weeklySlots")
+        .innerHTML =
+        html;
+
+}
+
+
+async function saveWeeklySchedule() {
+
+    const button =
+        $("#saveWeeklySchedule");
+
+
+    const studentId =
+        $("#newLessonStudent")
+            .value;
+
+
+    const kind =
+        $("#newLessonKind")
+            .value;
+
+
+    const duration =
+        Number(
+            $("#newDuration")
+                .value
+        );
+
+
+    const days =
+        [
+            ...document
+                .querySelectorAll(
+                    ".weekly-day"
+                )
+        ];
+
+
+    const times =
+        [
+            ...document
+                .querySelectorAll(
+                    ".weekly-time"
+                )
+        ];
+
+
+    button.disabled =
+        true;
+
+    button.textContent =
+        "Сохраняем...";
+
+
+    const created = [];
+
+
+    try {
+
+        for (
+            let i = 0;
+            i < days.length;
+            i++
+        ) {
+
+            try {
+
+                const result =
+                    await api(
+                        `/students/${studentId}/schedule`,
+                        {
+                            method:
+                                "POST",
+                            body:
+                                JSON.stringify({
+
+                                    lesson_kind:
+                                        kind,
+
+                                    day_of_week:
+                                        Number(
+                                            days[i]
+                                                .value
+                                        ),
+
+                                    start_time:
+                                        times[i]
+                                            .value,
+
+                                    duration_minutes:
+                                        duration,
+
+                                    valid_from:
+                                        dateKey(
+                                            new Date()
+                                        ),
+
+                                    valid_until:
+                                        null
+
+                                })
+                        }
+                    );
+
+
+                created.push(
+                    result.id
+                );
+
+            } catch (e) {
+
+                // Compensating rollback.
+                for (
+                    const id of created
+                ) {
+
+                    try {
+
+                        await api(
+                            `/students/${studentId}/schedule/${id}`,
+                            {
+                                method:
+                                    "DELETE"
+                            }
+                        );
+
+                    } catch (_) {}
+
+                }
+
+                throw e;
+
+            }
+
+        }
+
+
+        closeModal();
+
+        await loadStudents();
+
+        await loadCalendar();
+
+        await loadDashboard();
+
+    } catch (e) {
+
+        alert(
+            e.message
+        );
+
+    } finally {
+
+        button.disabled =
+            false;
+
+        button.textContent =
+            "Сохранить";
+
+    }
+
+}
+
+
+/* =========================================================
+   FINANCE
+========================================================= */
+
+async function loadFinance() {
+
+    try {
+
+        const [
+            summary,
+            transactions
+        ] =
+            await Promise.all([
+
+                api(
+                    "/finance/summary"
+                ),
+
+                api(
+                    "/finance/transactions?limit=100"
+                )
+
+            ]);
+
+
+        $("#financeStats")
+            .innerHTML = `
+
+                <div class="card stat">
+
+                    <div class="stat-label">
+                        Сейчас денег
+                    </div>
+
+                    <div
+                        class="money-large"
+                    >
+                        ${money(
+                            summary
+                                .total_school_balance
+                        )}
+                    </div>
+
+                </div>
+
+
+                <div class="card stat">
+
+                    <div class="stat-label">
+                        Доход месяца
+                    </div>
+
+                    <div
+                        class="money-large"
+                    >
+                        ${money(
+                            summary
+                                .income_from_students
+                        )}
+                    </div>
+
+                </div>
+
+
+                <div class="card stat">
+
+                    <div class="stat-label">
+                        Расходы месяца
+                    </div>
+
+                    <div
+                        class="money-large"
+                    >
+                        ${money(
+                            summary
+                                .expenses_total
+                        )}
+                    </div>
+
+                </div>
+
+
+                <div class="card stat">
+
+                    <div class="stat-label">
+                        Прогноз месяца
+                    </div>
+
+                    <div
+                        class="money-large"
+                    >
+                        ${money(
+                            summary
+                                .monthly_forecast_income
+                        )}
+                    </div>
+
+                </div>
+
+
+                <div class="card stat">
+
+                    <div class="stat-label">
+                        Учеников
+                    </div>
+
+                    <div
+                        class="money-large"
+                    >
+                        ${summary.active_students}
+                    </div>
+
+                </div>
+
+            `;
+
+
+        $("#transactions")
+            .innerHTML =
+            transactions.length
+            ? transactions.map(
+                item => `
+
+                    <tr>
+
+                        <td>
+
+                            <span
+                                class="pill ${
+                                    item.operation_type ===
+                                    "income"
+                                    ? "success"
+                                    : "danger"
+                                }"
+                            >
+
+                                ${
+                                    item.operation_type ===
+                                    "income"
+                                    ? "Доход"
+                                    : "Расход"
+                                }
+
+                            </span>
+
+                        </td>
+
+
+                        <td>
+                            ${money(
+                                item.amount
+                            )}
+                        </td>
+
+
+                        <td>
+                            ${formatDateTime(
+                                item.date
+                            )}
+                        </td>
+
+
+                        <td>
+                            ${esc(
+                                item.description ||
+                                item.student_name ||
+                                item.category ||
+                                "—"
+                            )}
+                        </td>
+
+                    </tr>
+
+                `
+            ).join("")
+            :
+            `<tr>
+                <td
+                    colspan="4"
+                    class="empty"
+                >
+                    Операций пока нет
+                </td>
+             </tr>`;
+
+
+        const categoryEntries =
+            Object.entries(
+                summary
+                    .expenses_by_category ||
+                {}
+            );
+
+
+        $("#expenseCategories")
+            .innerHTML =
+            categoryEntries.length
+            ? categoryEntries.map(
+                ([category, amount]) =>
+                    `
+
+                        <div
+                            class="calendar-item"
+                            style="cursor:default"
+                        >
+
+                            <span>
+                                ${esc(
+                                    category
+                                )}
+                            </span>
+
+                            <b>
+                                ${money(
+                                    amount
+                                )}
+                            </b>
+
+                        </div>
+
+                    `
+            ).join("")
+            :
+            `<div class="empty">
+                Расходов нет
+             </div>`;
+
+    } catch (e) {
+
+        $("#transactions")
+            .innerHTML =
+            `<tr>
+                <td
+                    colspan="4"
+                    class="empty"
+                >
+                    ${esc(e.message)}
+                </td>
+             </tr>`;
+
+    }
+
+}
+
+
+$("#addPayment").onclick =
+    async () => {
+
+        if (
+            !state.students.length
+        )
+            await loadStudents();
+
+
+        openModal(
+
+            "Добавить оплату",
+
+            `
+
+                <div class="form">
+
+                    <div class="form-group">
+
+                        <label>
+                            Ученик
+                        </label>
+
+                        <select
+                            id="paymentStudent"
+                        >
+
+                            ${state.students
+                                .filter(
+                                    x =>
+                                        x.is_active
+                                )
+                                .map(
+                                    x =>
+                                        `<option
+                                            value="${x.id}"
+                                        >
+                                            ${esc(
+                                                x.full_name
+                                            )}
+                                         </option>`
+                                )
+                                .join("")}
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-row">
+
+                        <div class="form-group">
+
+                            <label>
+                                Сумма
+                            </label>
+
+                            <input
+                                id="paymentAmount"
+                                type="number"
+                                min="1"
+                                step="0.01"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label>
+                                Способ
+                            </label>
+
+                            <select
+                                id="paymentMethod"
+                            >
+
+                                <option value="kaspi">
+                                    Kaspi
+                                </option>
+
+                                <option value="cash">
+                                    Наличные
+                                </option>
+
+                                <option value="transfer">
+                                    Перевод
+                                </option>
+
+                                <option value="other">
+                                    Другое
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>
+                            Комментарий
+                        </label>
+
+                        <input
+                            id="paymentComment"
+                        >
+
+                    </div>
+
+
+                    <div class="form-actions">
+
+                        <button
+                            class="btn primary"
+                            id="savePayment"
+                            type="button"
+                        >
+                            Сохранить
+                        </button>
+
+                    </div>
+
+                </div>
+
+            `
+
+        );
+
+
+        $("#savePayment")
+            .onclick =
+            async () => {
+
+                const button =
+                    $("#savePayment");
+
+                button.disabled =
+                    true;
+
+                try {
+
+                    await api(
+                        "/finance/payments",
+                        {
+                            method:
+                                "POST",
+                            body:
+                                JSON.stringify({
+
+                                    student_id:
+                                        $("#paymentStudent")
+                                            .value,
+
+                                    amount:
+                                        Number(
+                                            $("#paymentAmount")
+                                                .value
+                                        ),
+
+                                    payment_method:
+                                        $("#paymentMethod")
+                                            .value,
+
+                                    request_id:
+                                        randomId(),
+
+                                    comment:
+                                        $("#paymentComment")
+                                            .value
+                                            .trim() ||
+                                        null
+
+                                })
+                        }
+                    );
+
+
+                    closeModal();
+
+                    await Promise.all([
+
+                        loadFinance(),
+
+                        loadStudents(),
+
+                        loadDashboard()
+
+                    ]);
+
+                } catch (e) {
+
+                    alert(
+                        e.message
+                    );
+
+                } finally {
+
+                    button.disabled =
+                        false;
+
+                }
+
+            };
+
+    };
+
+
+$("#addExpense").onclick =
+    () => {
+
+        openModal(
+
+            "Добавить расход",
+
+            `
+
+                <div class="form">
+
+                    <div class="form-row">
+
+                        <div class="form-group">
+
+                            <label>
+                                Категория
+                            </label>
+
+                            <select
+                                id="expenseCategory"
+                            >
+
+                                <option value="car">
+                                    Машина
+                                </option>
+
+                                <option value="food">
+                                    Продукты
+                                </option>
+
+                                <option value="utilities">
+                                    Коммуналка
+                                </option>
+
+                                <option value="salary">
+                                    Зарплата
+                                </option>
+
+                                <option value="equipment">
+                                    Оборудование
+                                </option>
+
+                                <option value="other">
+                                    Прочее
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label>
+                                Сумма
+                            </label>
+
+                            <input
+                                id="expenseAmount"
+                                type="number"
+                                min="1"
+                                step="0.01"
+                                required
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-row">
+
+                        <div class="form-group">
+
+                            <label>
+                                Способ
+                            </label>
+
+                            <select
+                                id="expenseMethod"
+                            >
+
+                                <option value="cash">
+                                    Наличные
+                                </option>
+
+                                <option value="kaspi">
+                                    Kaspi
+                                </option>
+
+                                <option value="transfer">
+                                    Перевод
+                                </option>
+
+                                <option value="other">
+                                    Другое
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label>
+                                Дата
+                            </label>
+
+                            <input
+                                id="expenseDate"
+                                type="date"
+                                value="${dateKey(
+                                    new Date()
+                                )}"
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>
+                            Описание
+                        </label>
+
+                        <input
+                            id="expenseDescription"
+                            placeholder="Например: бензин"
+                        >
+
+                    </div>
+
+
+                    <div class="form-actions">
+
+                        <button
+                            class="btn primary"
+                            id="saveExpense"
+                            type="button"
+                        >
+                            Сохранить
+                        </button>
+
+                    </div>
+
+                </div>
+
+            `
+
+        );
+
+
+        $("#saveExpense")
+            .onclick =
+            async () => {
+
+                const button =
+                    $("#saveExpense");
+
+                button.disabled =
+                    true;
+
+                try {
+
+                    await api(
+                        "/finance/expenses",
+                        {
+                            method:
+                                "POST",
+                            body:
+                                JSON.stringify({
+
+                                    category:
+                                        $("#expenseCategory")
+                                            .value,
+
+                                    amount:
+                                        Number(
+                                            $("#expenseAmount")
+                                                .value
+                                        ),
+
+                                    payment_method:
+                                        $("#expenseMethod")
+                                            .value,
+
+                                    expense_date:
+                                        $("#expenseDate")
+                                            .value,
+
+                                    description:
+                                        $("#expenseDescription")
+                                            .value
+                                            .trim() ||
+                                        null
+
+                                })
+                        }
+                    );
+
+
+                    closeModal();
+
+                    await Promise.all([
+                        loadFinance(),
+                        loadDashboard()
+                    ]);
+
+                } catch (e) {
+
+                    alert(
+                        e.message
+                    );
+
+                } finally {
+
+                    button.disabled =
+                        false;
+
+                }
+
+            };
+
+    };
+
+
+/* =========================================================
+   NOTIFICATIONS
+========================================================= */
+
+async function loadNotifications() {
+
+    try {
+
+        const items =
+            await api(
+                "/notifications"
+            );
+
+
+        $("#notificationTable")
+            .innerHTML =
+            items.length
+            ? items.map(
+                item => `
+
+                    <tr>
+
+                        <td>
+                            ${esc(
+                                item.source
+                            )}
+                        </td>
+
+                        <td>
+                            ${esc(
+                                item.detected_action
+                            )}
+                        </td>
+
+                        <td>
+                            ${esc(
+                                item.ai_summary ||
+                                "—"
+                            )}
+                        </td>
+
+                        <td>
+
+                            <span
+                                class="pill ${
+                                    item.is_processed
+                                    ? "success"
+                                    : "warning"
+                                }"
+                            >
+
+                                ${
+                                    item.is_processed
+                                    ? "Обработано"
+                                    : "Ожидает"
+                                }
+
+                            </span>
+
+                        </td>
+
+                        <td>
+                            ${formatDateTime(
+                                item.received_at
+                            )}
+                        </td>
+
+                    </tr>
+
+                `
+            ).join("")
+            :
+            `<tr>
+                <td
+                    colspan="5"
+                    class="empty"
+                >
+                    Уведомлений нет
+                </td>
+             </tr>`;
+
+    } catch (e) {
+
+        $("#notificationTable")
+            .innerHTML =
+            `<tr>
+                <td
+                    colspan="5"
+                    class="empty"
+                >
+                    ${esc(e.message)}
+                </td>
+             </tr>`;
+
+    }
+
+}
+
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function toLocalInput(
+    value
+) {
+
+    if (!value)
+        return "";
+
+    const d =
+        new Date(value);
+
+    return [
+        d.getFullYear(),
+        "-",
+        pad(
+            d.getMonth() + 1
+        ),
+        "-",
+        pad(
+            d.getDate()
+        ),
+        "T",
+        pad(
+            d.getHours()
+        ),
+        ":",
+        pad(
+            d.getMinutes()
+        )
+    ].join("");
+
+}
+
+
+/* =========================================================
+   BOOT
+========================================================= */
+
+async function boot() {
+
+    try {
+
+        await api(
+            "/auth/me"
+        );
+
+        await loadDashboard();
+
+    } catch (e) {
+
+        console.error(
+            e
+        );
+
+    }
+
+}
+
+
+boot();
+
+setInterval(
+    async () => {
+
+        if (
+            state.page ===
+            "schedule"
+        ) {
+
+            await loadCalendar();
+
+        }
+
+        if (
+            state.page ===
+            "dashboard"
+        ) {
+
+            await loadDashboard();
+
+        }
+
+    },
+    60 * 1000
+);
+</script>
+
+</body>
+</html>
