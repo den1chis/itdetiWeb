@@ -1,0 +1,51 @@
+name: Ensure mobile CSS is loaded
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  ensure-mobile-css:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Add mobile stylesheet to app.html when missing
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("app.html")
+          text = path.read_text(encoding="utf-8")
+          link = '<link rel="stylesheet" href="mobile.css">'
+
+          if link not in text:
+              marker = '<title>'
+              if marker not in text:
+                  raise SystemExit("Cannot find <title> in app.html")
+
+              text = text.replace(marker, f'{link}\n\n{marker}', 1)
+              path.write_text(text, encoding="utf-8")
+              print("mobile.css link added to app.html")
+          else:
+              print("mobile.css is already linked")
+
+      - name: Commit app.html change
+        run: |
+          if git diff --quiet -- app.html; then
+            echo "No changes needed"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.html
+          git commit -m "fix: load mobile styles on app"
+          git push
