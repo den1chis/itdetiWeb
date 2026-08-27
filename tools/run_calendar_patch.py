@@ -1,5 +1,14 @@
 import re
+import sys
 import traceback
+from pathlib import Path
+
+# When this file is executed as `python3 tools/run_calendar_patch.py`, Python puts
+# the `tools` directory (not the repository root) on sys.path. Add the root so
+# `from tools import patch_calendar` works in GitHub Actions as well as locally.
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from tools import patch_calendar
 
@@ -23,3 +32,4 @@ except Exception:
     Path = __import__("pathlib").Path
     Path("patch-error.txt").write_text(traceback.format_exc(), encoding="utf-8")
     print(traceback.format_exc())
+    raise
