@@ -21,14 +21,14 @@ jobs:
       - name: Apply calendar patch
         run: python3 tools/run_calendar_patch.py
 
-      - name: Commit patched app
+      - name: Commit patched app or diagnostics
         run: |
-          if git diff --quiet -- app.html; then
-            echo "No app.html changes needed"
+          if git diff --quiet -- app.html && [ ! -f patch-error.txt ]; then
+            echo "No changes needed"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app.html
+          git add app.html patch-error.txt
           git commit -m "Update calendar UI"
           git push
