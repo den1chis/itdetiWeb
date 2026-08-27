@@ -170,7 +170,10 @@ function calendarColor(item) {
     text = replace_function(text, "renderListCalendar", list_view, "renderDayCalendar")
     text = replace_function(text, "renderDayCalendar", day_view, "getVisibleLessonStatus")
     text = replace_function(text, "getVisibleLessonStatus", "function getVisibleLessonStatus(item) { return item.item_type === \"lesson\" && Date.now() >= new Date(item.end_time).getTime() ? \"Проведено\" : \"Запланировано\"; }", "calendarItemHtml")
-    text = replace_function(text, "calendarItemHtml", item_html, "document.querySelectorAll")
+    # calendarItemHtml is immediately followed by the calendar item editor.
+    # Never use document.querySelectorAll as a boundary here: doing so can
+    # accidentally consume openCalendarItem and delete the editor function.
+    text = replace_function(text, "calendarItemHtml", item_html, "openCalendarItem")
     return text
 
 
