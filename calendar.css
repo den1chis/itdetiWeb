@@ -1,0 +1,282 @@
+:root {
+    --calendar-blue: #4f46e5;
+    --calendar-border: #e5e7eb;
+    --calendar-muted: #6b7280;
+    --calendar-bg: #ffffff;
+}
+
+/* Calendar cards use the selected color as a full background, never as a pill. */
+.calendar-event,
+.calendar-item,
+.dashboard-calendar-item {
+    --item-color: var(--calendar-blue);
+}
+
+.calendar-event {
+    background: var(--item-color) !important;
+    border: 1px solid color-mix(in srgb, var(--item-color), #000 10%) !important;
+    border-radius: 7px !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .12) !important;
+}
+
+.calendar-event .calendar-icon,
+.calendar-event .status-icon,
+.calendar-event .calendar-event-meta .status-icon,
+.calendar-item .status-icon,
+.calendar-item > span:last-child {
+    display: none !important;
+}
+
+.calendar-event-title {
+    font-weight: 700;
+}
+
+.calendar-event-meta {
+    opacity: .88;
+}
+
+/* Dashboard: compact Google-like colored event rows. */
+.dashboard-calendar-item {
+    border-left: 4px solid var(--item-color) !important;
+    border-radius: 8px !important;
+    background: color-mix(in srgb, var(--item-color), white 92%) !important;
+}
+
+.dashboard-calendar-item .pill {
+    display: none !important;
+}
+
+/* List/day views: full color block with readable white text. */
+.calendar-item.calendar-colored {
+    background: var(--item-color) !important;
+    color: #fff !important;
+    border: 0 !important;
+}
+
+.calendar-item.calendar-colored .small,
+.calendar-item.calendar-colored .muted {
+    color: rgba(255,255,255,.82) !important;
+}
+
+.calendar-item.calendar-colored .status-icon {
+    display: none !important;
+}
+
+/* Month view */
+.google-month-calendar {
+    width: 100%;
+    background: var(--calendar-bg);
+    border: 1px solid var(--calendar-border);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.google-month-weekdays,
+.google-month-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.google-month-weekdays > div {
+    padding: 10px 8px;
+    text-align: center;
+    color: var(--calendar-muted);
+    font-size: 11px;
+    font-weight: 700;
+    border-right: 1px solid var(--calendar-border);
+    border-bottom: 1px solid var(--calendar-border);
+}
+
+.google-month-day {
+    min-height: 118px;
+    padding: 7px;
+    border-right: 1px solid var(--calendar-border);
+    border-bottom: 1px solid var(--calendar-border);
+    background: #fff;
+    cursor: pointer;
+}
+
+.google-month-day:hover {
+    background: #fafbff;
+}
+
+.google-month-day.other-month {
+    background: #fafafa;
+    color: #9ca3af;
+}
+
+.google-month-day.today {
+    background: #f7f7ff;
+}
+
+.google-month-number {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.google-month-day.today .google-month-number {
+    background: var(--primary);
+    color: #fff;
+}
+
+.google-month-dots {
+    display: flex;
+    gap: 4px;
+    min-height: 7px;
+    margin: 2px 0 6px;
+}
+
+.google-month-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+}
+
+.google-month-events {
+    display: grid;
+    gap: 3px;
+}
+
+.google-month-event {
+    min-width: 0;
+    padding: 3px 5px;
+    border-radius: 4px;
+    background: var(--item-color);
+    color: #fff;
+    font-size: 10px;
+    line-height: 1.2;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.google-month-more {
+    color: var(--calendar-muted);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 3px;
+}
+
+/* Month title/dropdown */
+.calendar-month-title {
+    border: 0;
+    background: transparent;
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--text);
+    padding: 5px 8px;
+    border-radius: 8px;
+}
+
+.calendar-month-title:hover {
+    background: #f1f3f9;
+}
+
+.calendar-month-picker {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 290px;
+    z-index: 500;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 16px 45px rgba(15,23,42,.16);
+    padding: 12px;
+}
+
+.calendar-month-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.calendar-month-picker-grid button {
+    border: 0;
+    background: transparent;
+    height: 34px;
+    border-radius: 50%;
+}
+
+.calendar-month-picker-grid button:hover {
+    background: #f1f3f9;
+}
+
+.calendar-month-picker-grid button.today {
+    background: var(--primary);
+    color: #fff;
+    font-weight: 800;
+}
+
+.calendar-month-picker-grid button.has-events::after {
+    content: "";
+    display: block;
+    width: 4px;
+    height: 4px;
+    margin: -3px auto 0;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+@media (max-width: 760px) {
+    .google-month-calendar {
+        border-radius: 11px;
+    }
+
+    .google-month-weekdays > div {
+        padding: 7px 2px;
+        font-size: 9px;
+    }
+
+    .google-month-day {
+        min-height: 72px;
+        padding: 4px;
+    }
+
+    .google-month-number {
+        width: 24px;
+        height: 24px;
+        font-size: 11px;
+        margin-bottom: 2px;
+    }
+
+    .google-month-events {
+        display: none;
+    }
+
+    .google-month-dots {
+        margin-top: 3px;
+        gap: 3px;
+        flex-wrap: wrap;
+    }
+
+    .google-month-dot {
+        width: 6px;
+        height: 6px;
+    }
+
+    .google-month-more {
+        display: none;
+    }
+
+    .calendar-month-title {
+        font-size: 15px;
+    }
+
+    .calendar-month-picker {
+        width: min(290px, calc(100vw - 28px));
+    }
+
+    .calendar-event {
+        border-radius: 5px !important;
+        padding: 3px 4px !important;
+        font-size: 9px !important;
+    }
+}
