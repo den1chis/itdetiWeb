@@ -21,6 +21,9 @@ jobs:
       - name: Apply calendar patch
         run: python3 tools/run_calendar_patch.py
 
+      - name: Apply vertical agenda
+        run: python3 tools/patch_calendar_agenda.py
+
       - name: Commit patched app or diagnostics
         run: |
           if git diff --quiet -- app.html && [ ! -e patch-error.txt ]; then
