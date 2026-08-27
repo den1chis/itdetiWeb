@@ -1,0 +1,34 @@
+name: Apply calendar UI patch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/patch_calendar.py'
+      - '.github/workflows/patch-calendar.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Apply calendar patch
+        run: python3 tools/patch_calendar.py
+
+      - name: Commit patched app
+        run: |
+          if git diff --quiet -- app.html; then
+            echo "No app.html changes needed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.html
+          git commit -m "Update calendar UI"
+          git push
