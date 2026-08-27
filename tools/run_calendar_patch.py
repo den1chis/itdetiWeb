@@ -3,9 +3,6 @@ import sys
 import traceback
 from pathlib import Path
 
-# When this file is executed as `python3 tools/run_calendar_patch.py`, Python puts
-# the `tools` directory (not the repository root) on sys.path. Add the root so
-# `from tools import patch_calendar` works in GitHub Actions as well as locally.
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -14,14 +11,11 @@ from tools import patch_calendar
 
 
 def replace_function(text: str, name: str, replacement: str, next_name: str) -> str:
-    """Replace one JS function without depending on a fragile exact next marker."""
+    """Replace a JavaScript function while accepting both sync and async functions."""
     if next_name == "document.querySelectorAll":
-        # calendarItemHtml is near the end of the script, and the next construct
-        # is not guaranteed to be document.querySelectorAll(). Stop at the next
-        # function, a querySelectorAll call, or end of file.
-        pattern = rf"function {re.escape(name)}\s*\([^)]*\)\s*\{{.*?(?=function\s+[A-Za-z_$][\w$]*\s*\(|document\.querySelectorAll\s*\(|\Z)"
+        pattern = rf"(?:async\s+)?function\s+{re.escape(name)}\s*\([^)]*\)\s*\{{.*?(?=(?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(|document\.querySelectorAll\s*\(|\Z)"
     else:
-        pattern = rf"function {re.escape(name)}\s*\([^)]*\)\s*\{{.*?(?=function {re.escape(next_name)}\s*\()"
+        pattern = rf"(?:async\s+)?function\s+{re.escape(name)}\s*\([^)]*\)\s*\{{.*?(?=(?:async\s+)?function\s+{re.escape(next_name)}\s*\()"
 
     new, count = re.subn(
         pattern,
