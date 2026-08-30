@@ -24,6 +24,9 @@ jobs:
       - name: Apply vertical agenda
         run: python3 tools/patch_calendar_agenda.py
 
+      - name: Apply WebView confirmation dialog patch
+        run: python3 tools/patch_webview_confirm.py
+
       - name: Commit patched app or diagnostics
         run: |
           if git diff --quiet -- app.html && [ ! -e patch-error.txt ]; then
