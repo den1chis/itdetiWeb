@@ -27,6 +27,9 @@ jobs:
       - name: Apply WebView confirmation dialog patch
         run: python3 tools/patch_webview_confirm.py
 
+      - name: Apply CRUD and internal notifications patch
+        run: python3 tools/patch_crud_notifications.py
+
       - name: Commit patched app or diagnostics
         run: |
           if git diff --quiet -- app.html && [ ! -e patch-error.txt ]; then
@@ -39,5 +42,5 @@ jobs:
           if [ -e patch-error.txt ]; then
             git add patch-error.txt
           fi
-          git commit -m "Update calendar UI"
+          git commit -m "Fix CRUD confirmations and notifications"
           git push
