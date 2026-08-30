@@ -2,8 +2,8 @@ from pathlib import Path
 import re
 
 APP = Path("app.html")
-MARK = "ITDETI_CRUD_NOTIFICATIONS_V3"
-RUNTIME = r'''/* ITDETI_CRUD_NOTIFICATIONS_V3 */
+MARK = "ITDETI_CRUD_NOTIFICATIONS_V4"
+RUNTIME = r'''/* ITDETI_CRUD_NOTIFICATIONS_V4 */
 (function(){
     if (window.appNotify) return;
     const style=document.createElement('style');
@@ -28,7 +28,6 @@ RUNTIME = r'''/* ITDETI_CRUD_NOTIFICATIONS_V3 */
       el.querySelector('.itd-notify-close').onclick=()=>el.remove(); wrap.appendChild(el);
       setTimeout(()=>{if(el.isConnected)el.remove()},5000);
     };
-
     window.appValidate=function(fields){
       for(const field of fields||[]){
         const el=typeof field==='string'?document.querySelector(field):field?.el;
@@ -47,13 +46,8 @@ RUNTIME = r'''/* ITDETI_CRUD_NOTIFICATIONS_V3 */
     };
 })();
 
-async function cleanupStudentBeforeDelete(studentId){
-    // Kept for compatibility with older generated app.html. Student deletion is now atomic on backend.
-}
-
-async function createOrReactivateStudentSchedule(path, options){
-    return await api(path,options);
-}
+async function cleanupStudentBeforeDelete(studentId){ return; }
+async function createOrReactivateStudentSchedule(path, options){ return await api(path,options); }
 '''
 
 def function_span(text,name):
@@ -79,7 +73,7 @@ def patch_api(text):
     a,b=function_span(text,'api')
     fn=text[a:b]
     pattern=r'''const response\s*=\s*await fetch\(\s*API \+ path,\s*\{\s*\.\.\.options,\s*headers\s*\}\s*\);'''
-    repl='''let response;\n\n    try {\n\n        response = await fetch(\n            API + path,\n            {\n                ...options,\n                headers\n            }\n        );\n\n    } catch (error) {\n\n        throw new Error(\n            "Не удалось связаться с сервером. Проверьте интернет-соединение и доступность сервера."\n        );\n\n    }'''
+    repl='''let response;\n\n    try {\n        response = await fetch(API + path, { ...options, headers });\n    } catch (error) {\n        throw new Error("Не удалось связаться с сервером. Проверьте интернет-соединение и доступность сервера.");\n    }'''
     fn2,n=re.subn(pattern,repl,fn,count=1,flags=re.S)
     if n!=1: raise RuntimeError('api fetch block missing')
     return text[:a]+fn2+text[b:]
@@ -89,8 +83,7 @@ def patch_student_delete(text):
     fn=text[a:b]
     fn2=fn.replace('await cleanupStudentBeforeDelete(student.id);\n\n                    ','',1)
     if fn2==fn: raise RuntimeError('student cleanup call missing')
-    text=text[:a]+fn2+text[b:]
-    return text
+    return text[:a]+fn2+text[b:]
 
 def patch_student_validation(text):
     a,b=function_span(text,'openStudentEditor')
@@ -103,17 +96,6 @@ def patch_student_validation(text):
         text=text[:a]+fn+text[b:]
     return text
 
-def patch_event_validation(text):
-    a,b=function_span(text,'openEventEditor')
-    fn=text[a:b]
-    # Validate immediately before event POST/PATCH.
-    marker='''            try {\n\n                const payload ='''
-    insert='''            try {\n\n                if (!appValidate([\n                    {el: $("#eventTitle"), label: "Название"},\n                    {el: $("#eventStart"), label: "Дата и время начала"},\n                    {el: $("#eventEnd"), label: "Дата и время окончания"}\n                ])) return;\n\n                const payload ='''
-    if 'label: "Название"' not in fn and marker in fn:
-        fn=fn.replace(marker,insert,1)
-        text=text[:a]+fn+text[b:]
-    return text
-
 def main():
     text=APP.read_text(encoding='utf-8')
     original=text
@@ -122,12 +104,9 @@ def main():
       if pos<0:raise RuntimeError('script tag missing')
       text=text[:pos+len('<script>')]+'\n'+RUNTIME+text[pos+len('<script>'):]
     text=re.sub(r'\balert\s*\(', 'appNotify(', text)
-    # The backend now owns cascading student cleanup; doing it from the browser caused
-    # partial failures on WebView and made one delete depend on many extra requests.
     text=patch_student_delete(text)
     text=patch_api(text)
     text=patch_student_validation(text)
-    text=patch_event_validation(text)
     a,b=function_span(text,'itemsForDate')
     fn=text[a:b]
     if '!item.is_cancelled' not in fn:
