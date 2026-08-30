@@ -2281,6 +2281,79 @@ tbody tr.clickable:hover {
 
 
 <script>
+/* ITDETI_WEBVIEW_CONFIRM_V1 */
+(function () {
+    if (window.appConfirm) return;
+
+    const style = document.createElement("style");
+    style.textContent = `
+        .itd-confirm-overlay {
+            position:fixed; inset:0; z-index:99999;
+            display:flex; align-items:center; justify-content:center;
+            padding:18px; background:rgba(15,23,42,.48);
+            backdrop-filter:blur(3px);
+        }
+        .itd-confirm-dialog {
+            width:min(420px, 100%); background:#fff; color:#172033;
+            border-radius:16px; box-shadow:0 20px 60px rgba(15,23,42,.25);
+            padding:20px;
+        }
+        .itd-confirm-title { font-size:18px; font-weight:800; margin-bottom:8px; }
+        .itd-confirm-message { color:#697386; font-size:14px; line-height:1.45; white-space:pre-wrap; }
+        .itd-confirm-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
+        .itd-confirm-actions button {
+            border:1px solid #e6e8ee; background:#fff; color:#172033;
+            border-radius:9px; padding:10px 14px; font-weight:700;
+        }
+        .itd-confirm-actions .danger { background:#b42318; border-color:#b42318; color:#fff; }
+        @media(max-width:600px) {
+            .itd-confirm-overlay { align-items:flex-end; padding:10px; }
+            .itd-confirm-dialog { border-radius:18px; padding:18px; margin-bottom:env(safe-area-inset-bottom); }
+            .itd-confirm-actions button { min-height:44px; flex:1; }
+        }
+    `;
+    document.head.appendChild(style);
+
+    window.appConfirm = function (message, title = "Подтверждение", danger = true) {
+        return new Promise(resolve => {
+            const old = document.querySelector(".itd-confirm-overlay");
+            if (old) old.remove();
+            const overlay = document.createElement("div");
+            overlay.className = "itd-confirm-overlay";
+            overlay.innerHTML = `
+                <div class="itd-confirm-dialog" role="dialog" aria-modal="true">
+                    <div class="itd-confirm-title"></div>
+                    <div class="itd-confirm-message"></div>
+                    <div class="itd-confirm-actions">
+                        <button type="button" class="cancel">Отмена</button>
+                        <button type="button" class="${danger ? "danger" : ""}">Подтвердить</button>
+                    </div>
+                </div>`;
+            overlay.querySelector(".itd-confirm-title").textContent = title;
+            overlay.querySelector(".itd-confirm-message").textContent = message;
+            document.body.appendChild(overlay);
+
+            let done = false;
+            const finish = value => {
+                if (done) return;
+                done = true;
+                overlay.remove();
+                resolve(value);
+            };
+            overlay.querySelector(".cancel").onclick = () => finish(false);
+            overlay.querySelector(".danger").onclick = () => finish(true);
+            if (!danger) overlay.querySelector(".itd-confirm-actions button:last-child").onclick = () => finish(true);
+            overlay.addEventListener("click", e => { if (e.target === overlay) finish(false); });
+            const onKey = e => {
+                if (e.key === "Escape") finish(false);
+                if (e.key === "Enter") finish(true);
+            };
+            document.addEventListener("keydown", onKey, {once:true});
+            setTimeout(() => overlay.querySelector(".cancel").focus(), 0);
+        });
+    };
+})();
+
 
 
 /* =========================================================
@@ -3838,7 +3911,7 @@ async function openStudentEditor(
             async () => {
 
                 if (
-                    !confirm(
+                    !await appConfirm(
                         `Удалить ученика "${student.full_name}"?\n\nУченик будет деактивирован и пропадёт из активного расписания.`
                     )
                 ) {
@@ -4407,7 +4480,7 @@ async function openStudentEditorTracked(
                             );
 
                         if (
-                            !confirm(
+                            !await appConfirm(
                                 "Удалить этот день из расписания?"
                             )
                         )
@@ -5504,7 +5577,7 @@ async function openCalendarItem(
             async () => {
 
                 if (
-                    !confirm(
+                    !await appConfirm(
                         "Удалить это занятие?"
                     )
                 )
@@ -5766,6 +5839,13 @@ async function openEventEditor(
                 </div>
 
 
+                
+                <div class="form-group">
+                    <label>Цвет</label>
+                    <input id="eventColor" type="color" value="${item?.color || "#64748b"}" style="height:42px;padding:4px">
+                </div>
+
+
                 <div class="form-actions">
 
                     ${
@@ -5919,7 +5999,7 @@ async function openEventEditor(
             async () => {
 
                 if (
-                    !confirm(
+                    !await appConfirm(
                         "Удалить событие?"
                     )
                 )
