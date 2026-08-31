@@ -30,6 +30,9 @@ jobs:
       - name: Apply CRUD and internal notifications patch
         run: python3 tools/patch_crud_notifications.py
 
+      - name: Apply schedule and event defaults patch
+        run: python3 tools/patch_schedule_event_defaults.py
+
       - name: Commit patched app or diagnostics
         run: |
           if git diff --quiet -- app.html && [ ! -e patch-error.txt ]; then
@@ -42,5 +45,5 @@ jobs:
           if [ -e patch-error.txt ]; then
             git add patch-error.txt
           fi
-          git commit -m "Fix CRUD confirmations and notifications"
+          git commit -m "Fix calendar lesson and event defaults"
           git push
