@@ -2281,78 +2281,6 @@ tbody tr.clickable:hover {
 
 
 <script>
-/* ITDETI_CRUD_NOTIFICATIONS_V4 */
-(function(){
-    if (window.appNotify) return;
-    const style=document.createElement('style');
-    style.textContent=`
-      .itd-notify-wrap{position:fixed;top:16px;right:16px;z-index:100000;display:grid;gap:8px;width:min(390px,calc(100vw - 24px));pointer-events:none}
-      .itd-notify{pointer-events:auto;background:#fff;border:1px solid #e6e8ee;border-radius:13px;box-shadow:0 14px 45px rgba(15,23,42,.16);padding:12px 14px;display:flex;gap:10px;align-items:flex-start;animation:itdNotifyIn .18s ease-out}
-      .itd-notify.success{border-left:4px solid #14803a}.itd-notify.error{border-left:4px solid #b42318}.itd-notify.info{border-left:4px solid #4f46e5}.itd-notify.warning{border-left:4px solid #a15c00}
-      .itd-notify-title{font-size:13px;font-weight:800}.itd-notify-message{font-size:13px;line-height:1.4;color:#697386;white-space:pre-wrap;margin-top:2px}.itd-notify-close{margin-left:auto;border:0;background:transparent;color:#697386;font-size:18px;line-height:1;padding:0 2px}
-      .itd-field-invalid{border-color:#b42318!important;box-shadow:0 0 0 2px rgba(180,35,24,.08)!important}
-      @keyframes itdNotifyIn{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:none}}
-      @media(max-width:600px){.itd-notify-wrap{top:auto;bottom:calc(12px + env(safe-area-inset-bottom));left:12px;right:12px;width:auto}}
-    `;
-    document.head.appendChild(style);
-    window.appNotify=function(message,type='error',title){
-      let wrap=document.querySelector('.itd-notify-wrap');
-      if(!wrap){wrap=document.createElement('div');wrap.className='itd-notify-wrap';document.body.appendChild(wrap)}
-      const el=document.createElement('div'); el.className=`itd-notify ${type}`;
-      const titles={error:'Ошибка',success:'Готово',warning:'Внимание',info:'Информация'};
-      el.innerHTML=`<div><div class="itd-notify-title"></div><div class="itd-notify-message"></div></div><button type="button" class="itd-notify-close">×</button>`;
-      el.querySelector('.itd-notify-title').textContent=title||titles[type]||'Уведомление';
-      el.querySelector('.itd-notify-message').textContent=String(message??'');
-      el.querySelector('.itd-notify-close').onclick=()=>el.remove(); wrap.appendChild(el);
-      setTimeout(()=>{if(el.isConnected)el.remove()},5000);
-    };
-    window.appValidate=function(fields){
-      for(const field of fields||[]){
-        const el=typeof field==='string'?document.querySelector(field):field?.el;
-        const label=typeof field==='string'?(el?.getAttribute('aria-label')||el?.name||'Поле'):field?.label||'Поле';
-        if(!el) continue;
-        const value=String(el.value??'').trim();
-        if(!value){
-          el.classList.add('itd-field-invalid');
-          el.focus?.();
-          window.appNotify(`Заполните поле «${label}».`,'warning','Не заполнено');
-          return false;
-        }
-        el.classList.remove('itd-field-invalid');
-      }
-      return true;
-    };
-})();
-
-async function cleanupStudentBeforeDelete(studentId){ return; }
-async function createOrReactivateStudentSchedule(path, options){ return await api(path,options); }
-
-/* ITDETI_CRUD_NOTIFICATIONS_V2 */
-(function(){
-    if (window.appNotify) return;
-    const style=document.createElement('style');
-    style.textContent=`
-      .itd-notify-wrap{position:fixed;top:16px;right:16px;z-index:100000;display:grid;gap:8px;width:min(390px,calc(100vw - 24px));pointer-events:none}
-      .itd-notify{pointer-events:auto;background:#fff;border:1px solid #e6e8ee;border-radius:13px;box-shadow:0 14px 45px rgba(15,23,42,.16);padding:12px 14px;display:flex;gap:10px;align-items:flex-start;animation:itdNotifyIn .18s ease-out}
-      .itd-notify.success{border-left:4px solid #14803a}.itd-notify.error{border-left:4px solid #b42318}.itd-notify.info{border-left:4px solid #4f46e5}.itd-notify.warning{border-left:4px solid #a15c00}
-      .itd-notify-title{font-size:13px;font-weight:800}.itd-notify-message{font-size:13px;line-height:1.4;color:#697386;white-space:pre-wrap;margin-top:2px}.itd-notify-close{margin-left:auto;border:0;background:transparent;color:#697386;font-size:18px;line-height:1;padding:0 2px}
-      @keyframes itdNotifyIn{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:none}}
-      @media(max-width:600px){.itd-notify-wrap{top:auto;bottom:calc(12px + env(safe-area-inset-bottom));left:12px;right:12px;width:auto}}
-    `;
-    document.head.appendChild(style);
-    window.appNotify=function(message,type='error',title){
-      let wrap=document.querySelector('.itd-notify-wrap');
-      if(!wrap){wrap=document.createElement('div');wrap.className='itd-notify-wrap';document.body.appendChild(wrap)}
-      const el=document.createElement('div'); el.className=`itd-notify ${type}`;
-      const titles={error:'Ошибка',success:'Готово',warning:'Внимание',info:'Информация'};
-      el.innerHTML=`<div><div class="itd-notify-title"></div><div class="itd-notify-message"></div></div><button type="button" class="itd-notify-close">×</button>`;
-      el.querySelector('.itd-notify-title').textContent=title||titles[type]||'Уведомление';
-      el.querySelector('.itd-notify-message').textContent=String(message??'');
-      el.querySelector('.itd-notify-close').onclick=()=>el.remove(); wrap.appendChild(el);
-      setTimeout(()=>{if(el.isConnected)el.remove()},5000);
-    };
-})();
-
 async function cleanupStudentBeforeDelete(studentId){
     const lessons=await api(`/lessons?student_id=${encodeURIComponent(studentId)}`);
     for(const lesson of lessons||[]){
@@ -2375,6 +2303,7 @@ async function createOrReactivateStudentSchedule(path, options){
         return await api(`/students/${studentId}/schedule/${existing.id}`,{method:'PATCH',body:JSON.stringify({...p,is_active:true,valid_until:null})});
     }
 }
+
 
 /* ITDETI_WEBVIEW_CONFIRM_V1 */
 (function () {
@@ -5741,6 +5670,26 @@ $("#addEvent").onclick =
         );
 
 
+
+
+/* ITDETI_EVENT_FORM_DIRECT_DEFAULTS_V1 */
+function defaultEventStartValue() {
+    const d = new Date();
+    d.setMinutes(0, 0, 0);
+    d.setHours(d.getHours() + 1);
+    return toLocalInput(d.toISOString());
+}
+
+function defaultEventEndValue(item) {
+    if (item?.end_time) return toLocalInput(item.end_time);
+    const start = item?.start_time ? new Date(item.start_time) : new Date();
+    if (!item?.start_time) {
+        start.setMinutes(0, 0, 0);
+        start.setHours(start.getHours() + 1);
+    }
+    return toLocalInput(new Date(start.getTime() + 60 * 60 * 1000).toISOString());
+}
+
 async function openEventEditor(
     id
 ) {
@@ -5873,11 +5822,7 @@ async function openEventEditor(
                         <input
                             id="eventStart"
                             type="datetime-local"
-                            value="${
-                                toLocalInput(
-                                    item?.start_time
-                                )
-                            }"
+                            value="${item?.start_time ? toLocalInput(item.start_time) : defaultEventStartValue()}"
                         >
 
                     </div>
@@ -5892,11 +5837,7 @@ async function openEventEditor(
                         <input
                             id="eventEnd"
                             type="datetime-local"
-                            value="${
-                                toLocalInput(
-                                    item?.end_time
-                                )
-                            }"
+                            value="${defaultEventEndValue(item)}"
                         >
 
                     </div>
@@ -5922,47 +5863,12 @@ async function openEventEditor(
 
                 </div>
 
-
-                
                 <div class="form-group">
                     <label>Цвет</label>
                     <input id="eventColor" type="color" value="${item?.color || "#64748b"}" style="height:42px;padding:4px">
                 </div>
 
 
-                
-                <div class="form-group">
-                    <label>Цвет</label>
-                    <input id="eventColor" type="color" value="${item?.color || "#64748b"}" style="height:42px;padding:4px">
-                </div>
-
-
-                
-                <div class="form-group">
-                    <label>Цвет</label>
-                    <input id="eventColor" type="color" value="${item?.color || "#64748b"}" style="height:42px;padding:4px">
-                </div>
-
-
-                
-                <div class="form-group">
-                    <label>Цвет</label>
-                    <input id="eventColor" type="color" value="${item?.color || "#64748b"}" style="height:42px;padding:4px">
-                </div>
-
-
-                
-                <div class="form-group">
-                    <label>Цвет</label>
-                    <input id="eventColor" type="color" value="${item?.color || "#64748b"}" style="height:42px;padding:4px">
-                </div>
-
-
-                
-                <div class="form-group">
-                    <label>Цвет</label>
-                    <input id="eventColor" type="color" value="${item?.color || "#64748b"}" style="height:42px;padding:4px">
-                </div>
 
 
                 <div class="form-actions">
@@ -6002,6 +5908,20 @@ async function openEventEditor(
 
     );
 
+
+    const eventStartInput = $("#eventStart");
+    const eventEndInput = $("#eventEnd");
+    if (eventStartInput && eventEndInput) {
+        eventStartInput.addEventListener("change", () => {
+            if (!eventEndInput.dataset.userChanged) {
+                const d = new Date(eventStartInput.value);
+                if (!Number.isNaN(d.getTime())) {
+                    eventEndInput.value = toLocalInput(new Date(d.getTime() + 60 * 60 * 1000).toISOString());
+                }
+            }
+        });
+        eventEndInput.addEventListener("change", () => { eventEndInput.dataset.userChanged = "1"; });
+    }
 
     $("#saveEvent")
         .onclick =
@@ -6240,12 +6160,7 @@ function openLessonCreator() {
                             <option value="lesson">
                                 Урок
                             </option>
-
-                            <option value="masterclass">
-                                Мастер-класс
-                            </option>
-
-                        </select>
+</select>
 
                     </div>
 
@@ -7493,5 +7408,7 @@ setInterval(
 );
 </script>
 
+
+<script>/* ITDETI_FRONTEND_FINAL_V1 */</script>
 </body>
 </html>
