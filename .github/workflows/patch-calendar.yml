@@ -27,8 +27,9 @@ jobs:
       - name: Apply WebView confirmation dialog patch
         run: python3 tools/patch_webview_confirm.py
 
-      - name: Apply CRUD and internal notifications patch
-        run: python3 tools/patch_crud_notifications.py
+      # CRUD/notification changes are already present in app.html.
+      # The old patch_crud_notifications.py was not idempotent and failed
+      # when the cleanup call had already been removed from openStudentEditor.
 
       - name: Apply schedule and event defaults patch
         run: python3 tools/patch_schedule_event_defaults.py
@@ -57,5 +58,5 @@ jobs:
           if [ -e patch-error.txt ]; then
             git add patch-error.txt
           fi
-          git commit -m "Add standalone masterclass and clean event form"
+          git commit -m "Apply calendar and event form patches"
           git push
