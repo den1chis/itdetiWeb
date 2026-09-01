@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'tools/finalize_frontend.py'
+      - 'tools/patch_standalone_masterclass.py'
       - '.github/workflows/patch-calendar.yml'
   workflow_dispatch:
 
@@ -20,6 +21,9 @@ jobs:
 
       - name: Finalize frontend
         run: python3 tools/finalize_frontend.py
+
+      - name: Add standalone masterclass
+        run: python3 tools/patch_standalone_masterclass.py
 
       - name: Commit finalized app
         run: |
