@@ -39,6 +39,12 @@ jobs:
       - name: Remove duplicate event color controls
         run: python3 tools/patch_event_color_duplicates.py
 
+      - name: Apply event defaults v2
+        run: python3 tools/patch_event_defaults_v2.py
+
+      - name: Apply event defaults v3
+        run: python3 tools/patch_event_defaults_v3.py
+
       - name: Commit patched app or diagnostics
         run: |
           if git diff --quiet -- app.html && [ ! -e patch-error.txt ]; then
