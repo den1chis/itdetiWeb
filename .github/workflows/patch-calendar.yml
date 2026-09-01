@@ -33,6 +33,12 @@ jobs:
       - name: Apply schedule and event defaults patch
         run: python3 tools/patch_schedule_event_defaults.py
 
+      - name: Add standalone masterclass flow
+        run: python3 tools/patch_standalone_masterclass.py
+
+      - name: Remove duplicate event color controls
+        run: python3 tools/patch_event_color_duplicates.py
+
       - name: Commit patched app or diagnostics
         run: |
           if git diff --quiet -- app.html && [ ! -e patch-error.txt ]; then
@@ -45,5 +51,5 @@ jobs:
           if [ -e patch-error.txt ]; then
             git add patch-error.txt
           fi
-          git commit -m "Fix calendar lesson and event defaults"
+          git commit -m "Add standalone masterclass and clean event form"
           git push
