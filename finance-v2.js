@@ -11,11 +11,54 @@
   };
   const METHOD_LABELS = {kaspi:'Kaspi', cash:'Наличные', transfer:'Перевод', other:'Другое'};
 
+  // Compatibility helper used by the existing student editor.
+  // The old app.html calls appValidate(), but the function was missing.
+  if (!window.appValidate) {
+    window.appValidate = function (fields = []) {
+      let valid = true;
+      let firstInvalid = null;
+
+      for (const item of fields) {
+        const el = item?.el;
+        const label = item?.label || 'Поле';
+        if (!el) continue;
+
+        el.style.borderColor = '';
+        el.style.boxShadow = '';
+
+        const raw = String(el.value ?? '').trim();
+        const isNumber = el.type === 'number';
+        const numberValue = isNumber ? Number(raw) : null;
+        const invalid = !raw || (isNumber && (!Number.isFinite(numberValue) || numberValue <= 0));
+
+        if (invalid) {
+          valid = false;
+          if (!firstInvalid) firstInvalid = el;
+          el.style.borderColor = 'var(--danger)';
+          el.style.boxShadow = '0 0 0 2px rgba(180,35,24,.08)';
+          el.setAttribute('aria-invalid', 'true');
+          el.title = `${label}: заполните корректно`;
+        } else {
+          el.removeAttribute('aria-invalid');
+          el.removeAttribute('title');
+        }
+      }
+
+      if (!valid) {
+        const item = fields.find(x => x?.el === firstInvalid);
+        window.appNotify?.(`${item?.label || 'Обязательное поле'} заполнено некорректно.`, 'warning', 'Проверьте данные');
+        firstInvalid?.focus();
+      }
+
+      return valid;
+    };
+  }
+
   if (!window.appNotify) {
     window.appNotify = function (message, type = 'error', title = '') {
       const node = document.createElement('div');
       node.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:2000;max-width:360px;background:#fff;border:1px solid #e6e8ee;border-radius:12px;box-shadow:0 12px 35px rgba(20,30,60,.16);padding:12px 14px;font-size:13px';
-      node.innerHTML = `<b>${esc(title || (type === 'success' ? 'Готово' : 'Ошибка'))}</b><div style="margin-top:4px">${esc(message)}</div>`;
+      node.innerHTML = `<b>${esc(title || (type === 'success' ? 'Готово' : type === 'warning' ? 'Внимание' : 'Ошибка'))}</b><div style="margin-top:4px">${esc(message)}</div>`;
       document.body.appendChild(node);
       setTimeout(() => node.remove(), 3500);
     };
@@ -23,6 +66,14 @@
 
   async function sync() {
     try { await API('/finance/recurring-expenses/sync', {method:'POST'}); } catch (_) {}
+  }
+
+  function normalizeFinanceTableHeader() {
+    const body = $('#transactions');
+    const table = body?.closest('table');
+    const row = table?.querySelector('thead tr');
+    if (!row) return;
+    row.innerHTML = '<th>Тип</th><th>Сумма</th><th>Дата</th><th>Ученик / категория</th><th>Способ</th><th>Действия</th>';
   }
 
   function addActions(row, item) {
@@ -79,6 +130,7 @@
 
   async function loadFinanceV2() {
     try {
+      normalizeFinanceTableHeader();
       await sync();
       const [summary, transactions, recurring] = await Promise.all([
         API('/finance/summary'), API('/finance/transactions?limit=100'), API('/finance/recurring-expenses')
