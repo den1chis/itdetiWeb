@@ -28,7 +28,11 @@
   function addActions(row, item) {
     row.querySelector('[data-fin-edit]')?.addEventListener('click', () => openEdit(item));
     row.querySelector('[data-fin-cancel]')?.addEventListener('click', async () => {
-      if (!confirm(item.operation_type === 'income' ? 'Отменить это поступление? Баланс ученика будет уменьшен на эту сумму.' : 'Отменить этот расход?')) return;
+      const message = item.operation_type === 'income'
+        ? 'Отменить это поступление? Баланс ученика будет уменьшен на эту сумму.'
+        : 'Отменить этот расход?';
+      const confirmed = window.appConfirm ? await window.appConfirm(message) : confirm(message);
+      if (!confirmed) return;
       try {
         await API(item.operation_type === 'income' ? `/finance/payments/${item.id}` : `/finance/expenses/${item.id}`, {method:'DELETE'});
         await window.loadFinance();
@@ -48,11 +52,10 @@
       if (!current) throw new Error('Операция не найдена');
     } catch (e) { window.appNotify(e.message); return; }
 
-    const studentName = current.student_id ? (window.state?.students || []).find(x => x.id === current.student_id)?.full_name : null;
     const dateValue = isIncome ? new Date(current.recorded_at).toISOString().slice(0,16) : current.expense_date;
     const body = `
       <div class="form">
-        ${isIncome ? `<div class="form-group"><label>Ученик</label><input value="${esc(studentName || item.student_name || '')}" disabled></div>` : ''}
+        ${isIncome ? `<div class="form-group"><label>Ученик</label><input value="${esc(item.student_name || '')}" disabled></div>` : ''}
         <div class="form-row">
           <div class="form-group"><label>Сумма</label><input id="finEditAmount" type="number" min="0.01" step="0.01" value="${current.amount}"></div>
           <div class="form-group"><label>Способ</label><select id="finEditMethod">${Object.entries(METHOD_LABELS).map(([v,l])=>`<option value="${v}" ${current.payment_method===v?'selected':''}>${l}</option>`).join('')}</select></div>
@@ -129,12 +132,15 @@
   window.loadFinance = loadFinanceV2;
   const oldAddPayment = document.getElementById('addPayment');
   if (oldAddPayment) oldAddPayment.onclick = async () => {
-    if (!window.state.students.length) await window.loadStudents();
-    window.openModal('Добавить оплату', `<div class="form"><div class="form-group"><label>Ученик</label><select id="paymentStudent">${window.state.students.filter(x=>x.is_active).map(x=>`<option value="${x.id}">${esc(x.full_name)}</option>`).join('')}</select></div><div class="form-row"><div class="form-group"><label>Сумма</label><input id="paymentAmount" type="number" min="0.01" step="0.01"></div><div class="form-group"><label>Способ</label><select id="paymentMethod">${Object.entries(METHOD_LABELS).map(([v,l])=>`<option value="${v}" ${v==='kaspi'?'selected':''}>${l}</option>`).join('')}</select></div></div><div class="form-group"><label>Комментарий</label><input id="paymentComment"></div><div class="form-actions"><button class="btn" id="payCancel">Отмена</button><button class="btn primary" id="savePaymentV2">Сохранить</button></div></div>`);
+    const students = await API('/students');
+    window.openModal('Добавить оплату', `<div class="form"><div class="form-group"><label>Ученик</label><select id="paymentStudent">${students.filter(x=>x.is_active).map(x=>`<option value="${x.id}">${esc(x.full_name)}</option>`).join('')}</select></div><div class="form-row"><div class="form-group"><label>Сумма</label><input id="paymentAmount" type="number" min="0.01" step="0.01"></div><div class="form-group"><label>Способ</label><select id="paymentMethod">${Object.entries(METHOD_LABELS).map(([v,l])=>`<option value="${v}" ${v==='kaspi'?'selected':''}>${l}</option>`).join('')}</select></div></div><div class="form-group"><label>Комментарий</label><input id="paymentComment"></div><div class="form-actions"><button class="btn" id="payCancel">Отмена</button><button class="btn primary" id="savePaymentV2">Сохранить</button></div></div>`);
     $('#payCancel').onclick=window.closeModal; $('#savePaymentV2').onclick=async()=>{const b=$('#savePaymentV2');b.disabled=true;try{await API('/finance/payments',{method:'POST',body:JSON.stringify({student_id:$('#paymentStudent').value,amount:Number($('#paymentAmount').value),payment_method:$('#paymentMethod').value,request_id:crypto.randomUUID(),comment:$('#paymentComment').value.trim()||null})});window.closeModal();await window.loadFinance();await window.loadStudents();await window.loadDashboard();}catch(e){window.appNotify(e.message)}finally{b.disabled=false}};
   };
   const oldAddExpense = document.getElementById('addExpense');
-  if (oldAddExpense) oldAddExpense.onclick = () => window.openModal('Добавить расход', `<div class="form"><div class="form-row"><div class="form-group"><label>Категория</label><select id="expenseCategory">${Object.entries(CATEGORY_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select></div><div class="form-group"><label>Сумма</label><input id="expenseAmount" type="number" min="0.01" step="0.01"></div></div><div class="form-row"><div class="form-group"><label>Способ</label><select id="expenseMethod">${Object.entries(METHOD_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select></div><div class="form-group"><label>Дата</label><input id="expenseDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div></div><div class="form-group"><label>Описание</label><input id="expenseDescription"></div><div class="form-actions"><button class="btn" id="expCancel">Отмена</button><button class="btn primary" id="saveExpenseV2">Сохранить</button></div></div>`); $('#expCancel').onclick=window.closeModal; $('#saveExpenseV2').onclick=async()=>{const b=$('#saveExpenseV2');b.disabled=true;try{await API('/finance/expenses',{method:'POST',body:JSON.stringify({category:$('#expenseCategory').value,amount:Number($('#expenseAmount').value),payment_method:$('#expenseMethod').value,expense_date:$('#expenseDate').value,description:$('#expenseDescription').value.trim()||null})});window.closeModal();await window.loadFinance();await window.loadDashboard();}catch(e){window.appNotify(e.message)}finally{b.disabled=false}};
+  if (oldAddExpense) oldAddExpense.onclick = () => {
+    window.openModal('Добавить расход', `<div class="form"><div class="form-row"><div class="form-group"><label>Категория</label><select id="expenseCategory">${Object.entries(CATEGORY_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select></div><div class="form-group"><label>Сумма</label><input id="expenseAmount" type="number" min="0.01" step="0.01"></div></div><div class="form-row"><div class="form-group"><label>Способ</label><select id="expenseMethod">${Object.entries(METHOD_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select></div><div class="form-group"><label>Дата</label><input id="expenseDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div></div><div class="form-group"><label>Описание</label><input id="expenseDescription"></div><div class="form-actions"><button class="btn" id="expCancel">Отмена</button><button class="btn primary" id="saveExpenseV2">Сохранить</button></div></div>`);
+    $('#expCancel').onclick=window.closeModal;
+    $('#saveExpenseV2').onclick=async()=>{const b=$('#saveExpenseV2');b.disabled=true;try{await API('/finance/expenses',{method:'POST',body:JSON.stringify({category:$('#expenseCategory').value,amount:Number($('#expenseAmount').value),payment_method:$('#expenseMethod').value,expense_date:$('#expenseDate').value,description:$('#expenseDescription').value.trim()||null})});window.closeModal();await window.loadFinance();await window.loadDashboard();}catch(e){window.appNotify(e.message)}finally{b.disabled=false}};
   };
 
   if (window.state?.page === 'finance') loadFinanceV2();
