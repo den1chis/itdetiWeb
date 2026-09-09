@@ -81,8 +81,12 @@
     const originalFetch = window.fetch.bind(window);
     window.fetch = async function(input, init = {}) {
       try {
-        const url = typeof input === 'string' ? input : input?.url || '';
-        if (init?.method?.toUpperCase() === 'POST' && /\/students\/[^/]+\/schedule$/.test(url) && init.body) {
+        const rawUrl = typeof input === 'string' ? input : input?.url || '';
+        const requestMethod = (init?.method || (typeof input !== 'string' ? input?.method : '') || 'GET').toUpperCase();
+        const parsedUrl = rawUrl ? new URL(rawUrl, window.location.href) : null;
+        const pathname = parsedUrl?.pathname || rawUrl;
+
+        if (requestMethod === 'POST' && /\/students\/[^/]+\/schedule\/?$/.test(pathname) && init.body) {
           const selected = document.querySelector('.new-slot-valid-from-v2');
           if (selected?.value) {
             const payload = JSON.parse(init.body);
@@ -91,15 +95,15 @@
           }
         }
 
-        // When the existing event dialog deletes an occurrence, check whether
-        // it belongs to a recurring series and offer a safe choice:
-        // delete only this occurrence, or cancel the whole series.
-        if (init?.method?.toUpperCase() === 'DELETE' && /\/events\/[^/]+$/.test(url) && !init.__itdetiRecurringDeleteHandled) {
-          const eventId = url.match(/\/events\/([^/]+)$/)?.[1];
+        // The standard event dialog already asks for confirmation before calling DELETE.
+        // Here we add the recurring-series choice after that confirmation.
+        if (requestMethod === 'DELETE' && /\/events\/[^/]+\/?$/.test(pathname) && !init.__itdetiRecurringDeleteHandled) {
+          const match = pathname.match(/\/events\/([^/]+)\/?$/);
+          const eventId = match?.[1];
           if (eventId) {
             const headers = init.headers || {};
             try {
-              const listUrl = url.replace(/\/events\/[^/]+$/, '/events?include_cancelled=true');
+              const listUrl = new URL('/events?include_cancelled=true', parsedUrl?.origin || window.location.origin).toString();
               const metaResponse = await originalFetch(listUrl, {method:'GET', headers});
               if (metaResponse.ok) {
                 const events = await metaResponse.json();
@@ -107,17 +111,17 @@
                 if (event?.recurring_event_id) {
                   const deleteOnly = window.appConfirm
                     ? await window.appConfirm('Это событие входит в повторяющуюся серию. Удалить только выбранное событие?')
-                    : confirm('Это событие входит в повторяющуюся серию. Удалить только выбранное событие?');
+                    : window.confirm('Это событие входит в повторяющуюся серию. Удалить только выбранное событие?');
                   if (deleteOnly) {
                     return originalFetch(input, {...init, __itdetiRecurringDeleteHandled:true});
                   }
 
                   const deleteAll = window.appConfirm
                     ? await window.appConfirm('Удалить всю повторяющуюся серию? Все её созданные события будут скрыты из календаря.')
-                    : confirm('Удалить всю повторяющуюся серию? Все её созданные события будут скрыты из календаря.');
+                    : window.confirm('Удалить всю повторяющуюся серию? Все её созданные события будут скрыты из календаря.');
                   if (!deleteAll) return new Response(null, {status: 204});
 
-                  const seriesUrl = url.replace(/\/events\/[^/]+$/, `/recurring-events/${event.recurring_event_id}/all`);
+                  const seriesUrl = new URL(`/recurring-events/${event.recurring_event_id}/all`, parsedUrl?.origin || window.location.origin).toString();
                   const seriesResponse = await originalFetch(seriesUrl, {method:'DELETE', headers});
                   if (!seriesResponse.ok) return seriesResponse;
                   return new Response(null, {status: 204});
