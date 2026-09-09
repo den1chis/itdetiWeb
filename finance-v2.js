@@ -10,27 +10,27 @@
     car:'Машина', food:'Продукты', other:'Прочее'
   };
   const METHOD_LABELS = {kaspi:'Kaspi', cash:'Наличные', transfer:'Перевод', other:'Другое'};
+  const MONTHS_RU = ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
 
-  // Compatibility helper used by the existing student editor.
-  // The old app.html calls appValidate(), but the function was missing.
+  function currentPeriod() {
+    const now = new Date();
+    return { month: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`, label: `${MONTHS_RU[now.getMonth()]} ${now.getFullYear()}` };
+  }
+
   if (!window.appValidate) {
     window.appValidate = function (fields = []) {
       let valid = true;
       let firstInvalid = null;
-
       for (const item of fields) {
         const el = item?.el;
         const label = item?.label || 'Поле';
         if (!el) continue;
-
         el.style.borderColor = '';
         el.style.boxShadow = '';
-
         const raw = String(el.value ?? '').trim();
         const isNumber = el.type === 'number';
         const numberValue = isNumber ? Number(raw) : null;
         const invalid = !raw || (isNumber && (!Number.isFinite(numberValue) || numberValue <= 0));
-
         if (invalid) {
           valid = false;
           if (!firstInvalid) firstInvalid = el;
@@ -43,13 +43,11 @@
           el.removeAttribute('title');
         }
       }
-
       if (!valid) {
         const item = fields.find(x => x?.el === firstInvalid);
         window.appNotify?.(`${item?.label || 'Обязательное поле'} заполнено некорректно.`, 'warning', 'Проверьте данные');
         firstInvalid?.focus();
       }
-
       return valid;
     };
   }
@@ -64,10 +62,6 @@
     };
   }
 
-  async function sync() {
-    try { await API('/finance/recurring-expenses/sync', {method:'POST'}); } catch (_) {}
-  }
-
   function normalizeFinanceTableHeader() {
     const body = $('#transactions');
     const table = body?.closest('table');
@@ -76,16 +70,34 @@
     row.innerHTML = '<th>Тип</th><th>Сумма</th><th>Дата</th><th>Ученик / категория</th><th>Способ</th><th>Действия</th>';
   }
 
+  async function getRecurringExpenseRecords() {
+    const { month } = currentPeriod();
+    try { return await API(`/finance/expenses?month=${month}`); } catch (_) { return []; }
+  }
+
+  async function getRecurringIncomeRecords() {
+    try { return await API('/finance/recurring-income-records'); } catch (_) { return []; }
+  }
+
   function addActions(row, item) {
     row.querySelector('[data-fin-edit]')?.addEventListener('click', () => openEdit(item));
     row.querySelector('[data-fin-cancel]')?.addEventListener('click', async () => {
-      const message = item.operation_type === 'income'
-        ? 'Отменить это поступление? Баланс ученика будет уменьшен на эту сумму.'
-        : 'Отменить этот расход?';
+      let message;
+      let endpoint;
+      if (item.source_type === 'recurring_income') {
+        message = 'Отменить получение регулярного дохода?';
+        endpoint = `/finance/recurring-income-records/${item.id}`;
+      } else if (item.operation_type === 'income') {
+        message = 'Отменить это поступление? Баланс ученика будет уменьшен на эту сумму.';
+        endpoint = `/finance/payments/${item.id}`;
+      } else {
+        message = 'Отменить этот расход?';
+        endpoint = `/finance/expenses/${item.id}`;
+      }
       const confirmed = window.appConfirm ? await window.appConfirm(message) : confirm(message);
       if (!confirmed) return;
       try {
-        await API(item.operation_type === 'income' ? `/finance/payments/${item.id}` : `/finance/expenses/${item.id}`, {method:'DELETE'});
+        await API(endpoint, {method:'DELETE'});
         await window.loadFinance();
         await window.loadStudents?.();
         await window.loadDashboard?.();
@@ -94,12 +106,16 @@
   }
 
   async function openEdit(item) {
+    if (item.source_type === 'recurring_income') {
+      return openRecurringIncomeRecordEdit(item);
+    }
+
     const isIncome = item.operation_type === 'income';
     let current;
     try {
       current = isIncome
-        ? (await API(`/finance/payments?include_cancelled=true`)).find(x => x.id === item.id)
-        : (await API(`/finance/expenses?include_cancelled=true`)).find(x => x.id === item.id);
+        ? (await API('/finance/payments?include_cancelled=true')).find(x => x.id === item.id)
+        : (await API('/finance/expenses?include_cancelled=true')).find(x => x.id === item.id);
       if (!current) throw new Error('Операция не найдена');
     } catch (e) { window.appNotify(e.message); return; }
 
@@ -128,27 +144,98 @@
     };
   }
 
+  async function openRecurringIncomeRecordEdit(item) {
+    let current;
+    try {
+      current = (await API('/finance/recurring-income-records?include_cancelled=true')).find(x => x.id === item.id);
+      if (!current) throw new Error('Поступление не найдено');
+    } catch (e) { window.appNotify(e.message); return; }
+    const body = `<div class="form">
+      <div class="form-group"><label>Сумма</label><input id="riEditAmount" type="number" min="0.01" step="0.01" value="${current.amount}"></div>
+      <div class="form-row"><div class="form-group"><label>Способ</label><select id="riEditMethod">${Object.entries(METHOD_LABELS).map(([v,l])=>`<option value="${v}" ${current.payment_method===v?'selected':''}>${l}</option>`).join('')}</select></div><div class="form-group"><label>Дата получения</label><input id="riEditDate" type="date" value="${current.received_date}"></div></div>
+      <div class="form-group"><label>Комментарий</label><input id="riEditComment" value="${esc(current.comment || '')}"></div>
+      <div class="form-actions"><button class="btn" id="riEditCancel">Отмена</button><button class="btn primary" id="riEditSave">Сохранить</button></div>
+    </div>`;
+    window.openModal('Редактирование регулярного дохода', body);
+    $('#riEditCancel').onclick = window.closeModal;
+    $('#riEditSave').onclick = async () => {
+      const b = $('#riEditSave'); b.disabled = true;
+      try {
+        await API(`/finance/recurring-income-records/${current.id}`, {method:'PATCH', body:JSON.stringify({amount:Number($('#riEditAmount').value),payment_method:$('#riEditMethod').value,received_date:$('#riEditDate').value,comment:$('#riEditComment').value.trim() || null})});
+        window.closeModal(); await window.loadFinance(); await window.loadDashboard?.();
+      } catch (e) { window.appNotify(e.message); } finally { b.disabled = false; }
+    };
+  }
+
+  async function recordRecurringExpense(id) {
+    const button = document.querySelector(`[data-rec-record="${id}"]`);
+    if (button) button.disabled = true;
+    try {
+      await API(`/finance/recurring-expenses/${id}/record`, {method:'POST'});
+      window.appNotify('Расход проведён и включён в финансовый результат текущего месяца.', 'success', 'Готово');
+      await window.loadFinance();
+      await window.loadDashboard?.();
+    } catch (e) {
+      window.appNotify(e.message, 'warning', 'Расход не проведён');
+    } finally {
+      if (button) button.disabled = false;
+    }
+  }
+
+  async function recordRecurringIncome(item) {
+    const body = `<div class="form">
+      <div class="form-group"><label>Доход</label><input value="${esc(item.name)}" disabled></div>
+      <div class="form-row"><div class="form-group"><label>Плановая сумма</label><input value="${money(item.amount)}" disabled></div><div class="form-group"><label>Фактически получил</label><input id="riAmount" type="number" min="0.01" step="0.01" value="${item.amount}"></div></div>
+      <div class="form-row"><div class="form-group"><label>Дата получения</label><input id="riDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div><div class="form-group"><label>Способ</label><select id="riMethod">${Object.entries(METHOD_LABELS).map(([v,l])=>`<option value="${v}" ${item.payment_method===v?'selected':''}>${l}</option>`).join('')}</select></div></div>
+      <div class="form-group"><label>Комментарий</label><input id="riComment" value="${esc(item.description || '')}" placeholder="Например: зарплата за сентябрь"></div>
+      <div class="form-actions"><button class="btn" id="riCancel">Отмена</button><button class="btn primary" id="riSave">Подтвердить получение</button></div>
+    </div>`;
+    window.openModal('Подтвердить получение дохода', body);
+    $('#riCancel').onclick = window.closeModal;
+    $('#riSave').onclick = async () => {
+      const b = $('#riSave'); b.disabled = true;
+      try {
+        await API(`/finance/recurring-incomes/${item.id}/record`, {method:'POST', body:JSON.stringify({amount:Number($('#riAmount').value),received_date:$('#riDate').value,payment_method:$('#riMethod').value,comment:$('#riComment').value.trim() || null})});
+        window.closeModal();
+        window.appNotify('Доход добавлен в финансовый результат текущего месяца.', 'success', 'Готово');
+        await window.loadFinance();
+        await window.loadDashboard?.();
+      } catch (e) { window.appNotify(e.message, 'warning', 'Доход не записан'); } finally { b.disabled = false; }
+    };
+  }
+
   async function loadFinanceV2() {
     try {
       normalizeFinanceTableHeader();
-      await sync();
-      const [summary, transactions, recurring] = await Promise.all([
-        API('/finance/summary'), API('/finance/transactions?limit=100'), API('/finance/recurring-expenses')
+      const [summary, transactions, recurringExpenses, recurringIncomes, currentExpenseRecords, incomeRecords] = await Promise.all([
+        API('/finance/summary'),
+        API('/finance/transactions?limit=100'),
+        API('/finance/recurring-expenses'),
+        API('/finance/recurring-incomes'),
+        getRecurringExpenseRecords(),
+        getRecurringIncomeRecords()
       ]);
+
+      const expenseRecordIds = new Set(currentExpenseRecords.filter(x => x.recurring_expense_id && !x.is_cancelled).map(x => x.recurring_expense_id));
+      const incomeRecordIds = new Set(incomeRecords.filter(x => !x.is_cancelled).map(x => x.recurring_income_id));
+      const period = currentPeriod();
+
       $('#financeStats').innerHTML = `
-        <div class="card stat"><div class="stat-label">Поступления месяца</div><div class="money-large">${money(summary.income_from_students)}</div></div>
+        <div class="card stat"><div class="stat-label">Доходы месяца</div><div class="money-large">${money(summary.total_income)}</div></div>
+        <div class="card stat"><div class="stat-label">От учеников</div><div class="money-large">${money(summary.income_from_students)}</div></div>
+        <div class="card stat"><div class="stat-label">Регулярные доходы</div><div class="money-large">${money(summary.recurring_income_total)}</div></div>
         <div class="card stat"><div class="stat-label">Расходы месяца</div><div class="money-large">${money(summary.expenses_total)}</div></div>
         <div class="card stat"><div class="stat-label">Результат месяца</div><div class="money-large">${money(summary.net_profit)}</div></div>
         <div class="card stat"><div class="stat-label">На балансах учеников</div><div class="money-large">${money(summary.student_balances_total)}</div></div>
-        <div class="card stat"><div class="stat-label">Долги по балансам</div><div class="money-large">${money(summary.negative_student_balances_total)}</div></div>
-        <div class="card stat"><div class="stat-label">План списаний за месяц</div><div class="money-large">${money(summary.monthly_forecast_income)}</div></div>`;
+        <div class="card stat"><div class="stat-label">План регулярных доходов</div><div class="money-large">${money(summary.planned_recurring_income)}</div></div>
+        <div class="card stat"><div class="stat-label">План регулярных расходов</div><div class="money-large">${money(summary.planned_recurring_expenses)}</div></div>`;
 
       $('#transactions').innerHTML = transactions.length ? transactions.map(item => `
         <tr class="${item.is_cancelled ? 'cancelled' : ''}">
           <td><span class="pill ${item.operation_type==='income'?'success':'danger'}">${item.operation_type==='income'?'Поступление':'Расход'}</span></td>
           <td>${item.operation_type==='income'?'+':'−'}${money(item.amount)}</td>
           <td>${window.formatDateTime(item.date)}</td>
-          <td>${esc(item.student_name || CATEGORY_LABELS[item.category] || item.description || '—')}</td>
+          <td>${esc(item.student_name || CATEGORY_LABELS[item.category] || item.description || 'Регулярный доход')}</td>
           <td>${METHOD_LABELS[item.payment_method] || '—'}</td>
           <td><button class="btn" data-fin-edit>Изменить</button> <button class="btn" data-fin-cancel>Отменить</button></td>
         </tr>`).join('') : `<tr><td colspan="6" class="empty">Операций пока нет</td></tr>`;
@@ -156,15 +243,34 @@
 
       $('#expenseCategories').innerHTML = Object.entries(summary.expenses_by_category || {}).map(([c,a]) => `<div class="calendar-item" style="cursor:default"><span>${esc(CATEGORY_LABELS[c] || c)}</span><b>${money(a)}</b></div>`).join('') || '<div class="empty">Расходов нет</div>';
 
-      let panel = document.getElementById('recurringExpensesPanel');
-      if (!panel) {
-        panel = document.createElement('div'); panel.id='recurringExpensesPanel'; panel.className='card card-padding'; panel.style.marginTop='14px';
-        document.getElementById('finance').appendChild(panel);
+      let expensePanel = document.getElementById('recurringExpensesPanel');
+      if (!expensePanel) {
+        expensePanel = document.createElement('div'); expensePanel.id='recurringExpensesPanel'; expensePanel.className='card card-padding'; expensePanel.style.marginTop='14px';
+        document.getElementById('finance').appendChild(expensePanel);
       }
-      panel.innerHTML = `<div class="section-title">Регулярные расходы</div><div class="toolbar"><button class="btn primary" id="addRecurringExpense">+ Регулярный расход</button></div>` + (recurring.length ? recurring.map(r => `<div class="calendar-item"><div><b>${esc(r.name)}</b><div style="font-size:12px;color:var(--muted)">${esc(CATEGORY_LABELS[r.category]||r.category)} · ${r.day_of_month}-го числа · ${METHOD_LABELS[r.payment_method]||r.payment_method}</div></div><b>${money(r.amount)}</b><button class="btn" data-rec-edit="${r.id}">${r.is_active?'Изменить':'Неактивен'}</button></div>`).join('') : '<div class="empty">Регулярных расходов пока нет</div>');
+      expensePanel.innerHTML = `<div class="section-title">Регулярные расходы — ${period.label}</div><div class="toolbar"><button class="btn primary" id="addRecurringExpense">+ Регулярный расход</button></div>` + (recurringExpenses.length ? recurringExpenses.map(r => {
+        const recorded = expenseRecordIds.has(r.id);
+        return `<div class="calendar-item"><div><b>${esc(r.name)}</b><div style="font-size:12px;color:var(--muted)">${esc(CATEGORY_LABELS[r.category]||r.category)} · ${r.day_of_month}-го числа · ${METHOD_LABELS[r.payment_method]||r.payment_method}</div></div><b>${money(r.amount)}</b>${r.is_active ? `<button class="btn ${recorded?'':'primary'}" data-rec-record="${r.id}" ${recorded?'disabled':''}>${recorded?'✓ Проведено':'Провести'}</button>` : '<button class="btn" disabled>Неактивен</button>'}<button class="btn" data-rec-edit="${r.id}">Изменить</button></div>`;
+      }).join('') : '<div class="empty">Регулярных расходов пока нет</div>');
       $('#addRecurringExpense').onclick = () => openRecurring();
-      panel.querySelectorAll('[data-rec-edit]').forEach(b => b.onclick = () => openRecurring(recurring.find(r => r.id === b.dataset.recEdit)));
-    } catch (e) { $('#transactions').innerHTML = `<tr><td colspan="6" class="empty">${esc(e.message)}</td></tr>`; }
+      expensePanel.querySelectorAll('[data-rec-record]').forEach(b => b.onclick = () => recordRecurringExpense(b.dataset.recRecord));
+      expensePanel.querySelectorAll('[data-rec-edit]').forEach(b => b.onclick = () => openRecurring(recurringExpenses.find(r => r.id === b.dataset.recEdit)));
+
+      let incomePanel = document.getElementById('recurringIncomesPanel');
+      if (!incomePanel) {
+        incomePanel = document.createElement('div'); incomePanel.id='recurringIncomesPanel'; incomePanel.className='card card-padding'; incomePanel.style.marginTop='14px';
+        document.getElementById('finance').appendChild(incomePanel);
+      }
+      incomePanel.innerHTML = `<div class="section-title">Регулярные доходы — ${period.label}</div><div class="toolbar"><button class="btn primary" id="addRecurringIncome">+ Регулярный доход</button></div>` + (recurringIncomes.length ? recurringIncomes.map(r => {
+        const received = incomeRecordIds.has(r.id);
+        return `<div class="calendar-item"><div><b>${esc(r.name)}</b><div style="font-size:12px;color:var(--muted)">${r.day_of_month}-го числа · ${METHOD_LABELS[r.payment_method]||r.payment_method}</div></div><b>${money(r.amount)}</b>${r.is_active ? `<button class="btn ${received?'':'primary'}" data-ri-record="${r.id}" ${received?'disabled':''}>${received?'✓ Получено':'Получено'}</button>` : '<button class="btn" disabled>Неактивен</button>'}<button class="btn" data-ri-edit="${r.id}">Изменить</button></div>`;
+      }).join('') : '<div class="empty">Регулярных доходов пока нет</div>');
+      $('#addRecurringIncome').onclick = () => openRecurringIncome();
+      incomePanel.querySelectorAll('[data-ri-record]').forEach(b => b.onclick = () => recordRecurringIncome(recurringIncomes.find(r => r.id === b.dataset.riRecord)));
+      incomePanel.querySelectorAll('[data-ri-edit]').forEach(b => b.onclick = () => openRecurringIncome(recurringIncomes.find(r => r.id === b.dataset.riEdit)));
+    } catch (e) {
+      $('#transactions').innerHTML = `<tr><td colspan="6" class="empty">${esc(e.message)}</td></tr>`;
+    }
   }
 
   async function openRecurring(item=null) {
@@ -179,6 +285,19 @@
     window.openModal(item?'Редактирование регулярного расхода':'Новый регулярный расход',body);
     $('#recCancel').onclick=window.closeModal;
     $('#recSave').onclick=async()=>{const b=$('#recSave');b.disabled=true;try{const payload={name:$('#recName').value.trim(),category:$('#recCategory').value,amount:Number($('#recAmount').value),day_of_month:Number($('#recDay').value),payment_method:$('#recMethod').value,description:$('#recDescription').value.trim()||null,is_active:item?$('#recActive').checked:true};await API(item?`/finance/recurring-expenses/${item.id}`:'/finance/recurring-expenses',{method:item?'PATCH':'POST',body:JSON.stringify(payload)});window.closeModal();await window.loadFinance();}catch(e){window.appNotify(e.message)}finally{b.disabled=false}};
+  }
+
+  async function openRecurringIncome(item=null) {
+    const body = `<div class="form">
+      <div class="form-group"><label>Название</label><input id="riName" value="${esc(item?.name||'')}" placeholder="Например: Зарплата в школе"></div>
+      <div class="form-row"><div class="form-group"><label>Плановая сумма</label><input id="riTemplateAmount" type="number" min="0.01" step="0.01" value="${item?.amount||''}"></div><div class="form-group"><label>День месяца</label><input id="riDay" type="number" min="1" max="31" value="${item?.day_of_month||1}"></div></div>
+      <div class="form-row"><div class="form-group"><label>Способ получения</label><select id="riTemplateMethod">${Object.entries(METHOD_LABELS).map(([v,l])=>`<option value="${v}" ${item?.payment_method===v?'selected':''}>${l}</option>`).join('')}</select></div><div class="form-group"><label>Описание</label><input id="riDescription" value="${esc(item?.description||'')}"></div></div>
+      ${item ? `<div class="form-group"><label><input id="riActive" type="checkbox" ${item.is_active?'checked':''}> Активен</label></div>`:''}
+      <div class="form-actions"><button class="btn" id="riTemplateCancel">Отмена</button><button class="btn primary" id="riTemplateSave">Сохранить</button></div>
+    </div>`;
+    window.openModal(item?'Редактирование регулярного дохода':'Новый регулярный доход',body);
+    $('#riTemplateCancel').onclick=window.closeModal;
+    $('#riTemplateSave').onclick=async()=>{const b=$('#riTemplateSave');b.disabled=true;try{const payload={name:$('#riName').value.trim(),amount:Number($('#riTemplateAmount').value),day_of_month:Number($('#riDay').value),payment_method:$('#riTemplateMethod').value,description:$('#riDescription').value.trim()||null,is_active:item?$('#riActive').checked:true};await API(item?`/finance/recurring-incomes/${item.id}`:'/finance/recurring-incomes',{method:item?'PATCH':'POST',body:JSON.stringify(payload)});window.closeModal();await window.loadFinance();}catch(e){window.appNotify(e.message)}finally{b.disabled=false}};
   }
 
   window.loadFinance = loadFinanceV2;
