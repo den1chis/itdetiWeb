@@ -95,14 +95,16 @@
           }
         }
 
-        // The standard event dialog already asks for confirmation before calling DELETE.
-        // Here we add the recurring-series choice after that confirmation.
         if (requestMethod === 'DELETE' && /\/events\/[^/]+\/?$/.test(pathname) && !init.__itdetiRecurringDeleteHandled) {
           const match = pathname.match(/\/events\/([^/]+)\/?$/);
           const eventId = match?.[1];
           if (eventId) {
-            const headers = init.headers || {};
             try {
+              // The API helper adds Authorization after this interceptor sees the request,
+              // so copy the current access token explicitly for our metadata lookup.
+              const token = localStorage.getItem('itdeti_access_token');
+              const headers = new Headers(init.headers || {});
+              if (token && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`);
               const listUrl = new URL('/events?include_cancelled=true', parsedUrl?.origin || window.location.origin).toString();
               const metaResponse = await originalFetch(listUrl, {method:'GET', headers});
               if (metaResponse.ok) {
@@ -112,23 +114,22 @@
                   const deleteOnly = window.appConfirm
                     ? await window.appConfirm('Это событие входит в повторяющуюся серию. Удалить только выбранное событие?')
                     : window.confirm('Это событие входит в повторяющуюся серию. Удалить только выбранное событие?');
-                  if (deleteOnly) {
-                    return originalFetch(input, {...init, __itdetiRecurringDeleteHandled:true});
-                  }
+                  if (deleteOnly) return originalFetch(input, {...init, __itdetiRecurringDeleteHandled:true});
 
                   const deleteAll = window.appConfirm
                     ? await window.appConfirm('Удалить всю повторяющуюся серию? Все её созданные события будут скрыты из календаря.')
                     : window.confirm('Удалить всю повторяющуюся серию? Все её созданные события будут скрыты из календаря.');
-                  if (!deleteAll) return new Response(null, {status: 204});
+                  if (!deleteAll) return new Response(null, {status:204});
 
                   const seriesUrl = new URL(`/recurring-events/${event.recurring_event_id}/all`, parsedUrl?.origin || window.location.origin).toString();
-                  const seriesResponse = await originalFetch(seriesUrl, {method:'DELETE', headers});
+                  const seriesHeaders = new Headers(headers);
+                  const seriesResponse = await originalFetch(seriesUrl, {method:'DELETE', headers:seriesHeaders});
                   if (!seriesResponse.ok) return seriesResponse;
-                  return new Response(null, {status: 204});
+                  return new Response(null, {status:204});
                 }
               }
             } catch (_) {
-              // If metadata lookup fails, fall back to the original deletion.
+              // Metadata lookup failure falls back to the original single-event deletion.
             }
           }
         }
