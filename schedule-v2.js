@@ -90,6 +90,44 @@
             init = {...init, body: JSON.stringify(payload)};
           }
         }
+
+        // When the existing event dialog deletes an occurrence, check whether
+        // it belongs to a recurring series and offer a safe choice:
+        // delete only this occurrence, or cancel the whole series.
+        if (init?.method?.toUpperCase() === 'DELETE' && /\/events\/[^/]+$/.test(url) && !init.__itdetiRecurringDeleteHandled) {
+          const eventId = url.match(/\/events\/([^/]+)$/)?.[1];
+          if (eventId) {
+            const headers = init.headers || {};
+            try {
+              const listUrl = url.replace(/\/events\/[^/]+$/, '/events?include_cancelled=true');
+              const metaResponse = await originalFetch(listUrl, {method:'GET', headers});
+              if (metaResponse.ok) {
+                const events = await metaResponse.json();
+                const event = (events || []).find(x => String(x.id) === String(eventId));
+                if (event?.recurring_event_id) {
+                  const deleteOnly = window.appConfirm
+                    ? await window.appConfirm('Это событие входит в повторяющуюся серию. Удалить только выбранное событие?')
+                    : confirm('Это событие входит в повторяющуюся серию. Удалить только выбранное событие?');
+                  if (deleteOnly) {
+                    return originalFetch(input, {...init, __itdetiRecurringDeleteHandled:true});
+                  }
+
+                  const deleteAll = window.appConfirm
+                    ? await window.appConfirm('Удалить всю повторяющуюся серию? Все её созданные события будут скрыты из календаря.')
+                    : confirm('Удалить всю повторяющуюся серию? Все её созданные события будут скрыты из календаря.');
+                  if (!deleteAll) return new Response(null, {status: 204});
+
+                  const seriesUrl = url.replace(/\/events\/[^/]+$/, `/recurring-events/${event.recurring_event_id}/all`);
+                  const seriesResponse = await originalFetch(seriesUrl, {method:'DELETE', headers});
+                  if (!seriesResponse.ok) return seriesResponse;
+                  return new Response(null, {status: 204});
+                }
+              }
+            } catch (_) {
+              // If metadata lookup fails, fall back to the original deletion.
+            }
+          }
+        }
       } catch (_) {}
       return originalFetch(input, init);
     };
