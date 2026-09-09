@@ -71,7 +71,7 @@
       try { const student=students.find(x=>x.id===$('#mlStudent').value); if(!student) throw new Error('Выберите ученика.');
         await API('/manual-lessons',{method:'POST',body:JSON.stringify({student_id:student.id,start_time:new Date($('#mlDateTime').value).toISOString(),duration_minutes:Number($('#mlDuration').value),lesson_type:$('#mlType').value,price:Number($('#mlPrice').value),topic:$('#mlTopic').value.trim()||null,teacher_notes:$('#mlNotes').value.trim()||null})});
         window.closeModal(); await window.loadCalendar?.(); await window.loadStudents?.(); await window.loadDashboard?.(); window.appNotify?.('Проведённый урок добавлен и списан с баланса.','success','Готово');
-      } catch(e) { window.appNotify?.(e.message || 'Не удалось добавить урок.'); } finally { button.disabled=false; }
+      } catch(e) { window.appNotify?.(e.message || 'Не удалось добавить проведённый урок.'); } finally { button.disabled=false; }
     };
   }
 
@@ -100,16 +100,13 @@
           const eventId = match?.[1];
           if (eventId) {
             try {
-              // The API helper adds Authorization after this interceptor sees the request,
-              // so copy the current access token explicitly for our metadata lookup.
-              const token = localStorage.getItem('itdeti_access_token');
+              // The API helper has already put its Authorization header into init.headers.
+              // Ask the backend for this exact event, so the decision never depends on the calendar list.
               const headers = new Headers(init.headers || {});
-              if (token && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`);
-              const listUrl = new URL('/events?include_cancelled=true', parsedUrl?.origin || window.location.origin).toString();
-              const metaResponse = await originalFetch(listUrl, {method:'GET', headers});
+              const eventUrl = new URL(`/events/${eventId}`, parsedUrl?.origin || window.location.origin).toString();
+              const metaResponse = await originalFetch(eventUrl, {method:'GET', headers});
               if (metaResponse.ok) {
-                const events = await metaResponse.json();
-                const event = (events || []).find(x => String(x.id) === String(eventId));
+                const event = await metaResponse.json();
                 if (event?.recurring_event_id) {
                   const deleteOnly = window.appConfirm
                     ? await window.appConfirm('Это событие входит в повторяющуюся серию. Удалить только выбранное событие?')
@@ -118,18 +115,17 @@
 
                   const deleteAll = window.appConfirm
                     ? await window.appConfirm('Удалить всю повторяющуюся серию? Все её созданные события будут скрыты из календаря.')
-                    : window.confirm('Удалить всю повторяющуюся серию? Все её созданные события будут скрыты из календаря.');
+                    : window.confirm('Удалить всю повторяющуюся серию?');
                   if (!deleteAll) return new Response(null, {status:204});
 
                   const seriesUrl = new URL(`/recurring-events/${event.recurring_event_id}/all`, parsedUrl?.origin || window.location.origin).toString();
-                  const seriesHeaders = new Headers(headers);
-                  const seriesResponse = await originalFetch(seriesUrl, {method:'DELETE', headers:seriesHeaders});
+                  const seriesResponse = await originalFetch(seriesUrl, {method:'DELETE', headers:new Headers(headers)});
                   if (!seriesResponse.ok) return seriesResponse;
                   return new Response(null, {status:204});
                 }
               }
             } catch (_) {
-              // Metadata lookup failure falls back to the original single-event deletion.
+              // If metadata lookup fails, preserve the original single-event deletion behavior.
             }
           }
         }
