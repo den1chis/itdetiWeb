@@ -41,14 +41,16 @@
     return heading?.closest('.view') || heading?.parentElement?.parentElement || null;
   }
 
-  /*
-   * Legacy buttons are removed from the DOM, not hidden.
-   * New controls are independent and do not use legacy buttons as anchors.
-   */
-  function removeOldScheduleButtons(view) {
-    if (!view) return;
-    ['addEvent','addLesson','addRecurringEventV2','addManualLessonV2'].forEach(id => {
-      view.querySelector(`#${id}`)?.remove();
+  /* Remove every legacy schedule add control from the DOM. Never hide them with CSS. */
+  function removeOldScheduleButtons() {
+    [
+      'addEvent',
+      'addLesson',
+      'addMasterclass',
+      'addRecurringEventV2',
+      'addManualLessonV2'
+    ].forEach(id => {
+      document.querySelectorAll(`#${id}`).forEach(node => node.remove());
     });
   }
 
@@ -56,7 +58,7 @@
     const view = scheduleView();
     if (!view) return;
 
-    removeOldScheduleButtons(view);
+    removeOldScheduleButtons();
 
     const header = view.querySelector('.page-header');
     if (!header) return;
