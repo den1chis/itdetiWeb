@@ -72,13 +72,20 @@
   function polishMobileListHeaders(){
     if(!window.matchMedia('(max-width: 760px)').matches)return;
     const months={янв:'январь',фев:'февраль',мар:'март',апр:'апрель',май:'май',июн:'июнь',июл:'июль',авг:'август',сен:'сентябрь',сент:'сентябрь',окт:'октябрь',ноя:'ноябрь',дек:'декабрь'};
+    const monthNumbers={янв:0,фев:1,мар:2,апр:3,май:4,июн:5,июл:6,авг:7,сен:8,сент:8,окт:9,ноя:10,дек:11};
     const now=new Date();
     document.querySelectorAll('.list-day').forEach(day=>{
       const headers=day.querySelectorAll('.list-day-header,.list-day-title');
       let text='';
       headers.forEach(h=>{text+=` ${h.textContent||''}`;});
       const lower=text.toLowerCase();
-      const isToday=lower.includes('сегодня') || new RegExp(`\\b${now.getDate()}\\s*(?:${Object.keys(months).join('|')})\\b`,'i').test(lower) && lower.includes(Object.keys(months).find(k=>months[k]===months[Object.keys(months).find(k=>k===k)]));
+      const dayMatch=lower.match(/\b(\d{1,2})\b/);
+      let headerMonth=null;
+      Object.keys(months).some(short=>{
+        if(new RegExp(`\\b${short}\\b`,'i').test(lower)){headerMonth=monthNumbers[short];return true;}
+        return false;
+      });
+      const isToday=lower.includes('сегодня') || (Number(dayMatch?.[1])===now.getDate() && headerMonth===now.getMonth());
       day.classList.toggle('itdeti-today',!!isToday);
       headers.forEach(h=>{
         let html=h.innerHTML;
