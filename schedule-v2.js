@@ -42,17 +42,33 @@
   }
 
   function removeLegacyScheduleButtons() {
-    ['addEvent','addRecurringEventV2','addManualLessonV2'].forEach(id => document.getElementById(id)?.remove());
+    const legacyIds = ['addEvent','addRecurringEventV2','addManualLessonV2'];
+    legacyIds.forEach(id => document.getElementById(id)?.remove());
+
+    // Remove legacy schedule controls even if another script recreates them.
+    const view = scheduleView();
+    if (!view) return;
+    view.querySelectorAll('button, a, input[type=button], input[type=submit]').forEach(el => {
+      if (el.id && (el.id === 'itdetiAddLesson' || el.id === 'itdetiAddEvent' || el.id.startsWith('itdetiMobileAdd'))) return;
+      const handler = el.getAttribute('onclick') || '';
+      const text = (el.textContent || el.value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      if (legacyIds.some(id => handler.includes(id)) ||
+          handler.includes('addrecurringevent') || handler.includes('addmanuallesson') ||
+          /^(\+\s*)?(добавить регулярное событие|добавить регулярное|провести урок)$/.test(text)) {
+        el.remove();
+      }
+    });
   }
 
   function addScheduleActions() {
-    const legacyAddEvent = document.getElementById('addEvent');
     const view = scheduleView();
     if (!view) return;
 
-    const host = legacyAddEvent?.parentElement;
+    removeLegacyScheduleButtons();
+
+    const legacyAddEvent = document.getElementById('addEvent');
+    const host = legacyAddEvent?.parentElement || view.querySelector('.calendar-toolbar') || view.querySelector('.toolbar') || view.querySelector('.page-header');
     if (host) {
-      removeLegacyScheduleButtons();
       if (!document.getElementById('itdetiScheduleActions')) {
         const desktop = document.createElement('div');
         desktop.id = 'itdetiScheduleActions';
