@@ -6,8 +6,6 @@
 
 /* =========================================================
    CALENDAR — final visual rules
-   Week view intentionally keeps its original event colors.
-   List and Day use the same card style.
 ========================================================= */
 .calendar-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px!important}
 .calendar-left{display:flex;align-items:center;gap:6px;min-width:0}
@@ -16,11 +14,11 @@
 .view-switcher button{border:0;background:#fff;padding:8px 10px;font-size:12px}
 .view-switcher button.active{background:#eef0ff;color:var(--primary);font-weight:700}
 
-/* Week — do not recolor events here. */
-.calendar-scroll{width:100%;overflow-x:hidden;overflow-y:hidden}
-.week-calendar{display:grid;grid-template-columns:38px repeat(7,minmax(0,1fr));width:100%;min-width:0}
-.hour-line{height:30px;border-bottom:1px solid #eef0f4}
-.time-label{height:30px;border-bottom:1px solid #eef0f4;text-align:right;padding:2px 5px;color:#8a93a3;font-size:9px;line-height:26px}
+/* Week — use the actual color attached to each calendar item. */
+.calendar-event{background:var(--item-color,#4f46e5)!important;border:1px solid color-mix(in srgb,var(--item-color,#4f46e5),#000 10%)!important;color:#fff!important;border-radius:7px!important;box-shadow:0 1px 2px rgba(15,23,42,.12)!important}
+.calendar-event *{color:#fff!important;-webkit-text-fill-color:#fff!important}
+.calendar-event-title{font-weight:700}.calendar-event-meta{opacity:.92}
+.calendar-event:hover{filter:brightness(.96)}
 
 /* List */
 .agenda-calendar{width:100%;padding:0;display:grid;gap:12px}
@@ -39,15 +37,11 @@
 .agenda-card-meta{display:block;margin-top:4px;font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .agenda-empty{padding:20px 14px;color:#111827!important;font-size:12px;border-radius:28px;background:var(--surface-soft);text-align:center}
 
-/* Day — deliberately identical to list cards */
+/* Day — exactly the same card as List */
 .day-calendar{max-width:100%;display:grid;gap:8px}
 .day-title{font-size:18px;font-weight:800;margin-bottom:3px;color:#111827!important;text-transform:lowercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.calendar-item.final-day-item,
 .day-calendar .calendar-item{display:block!important;width:100%!important;min-width:0!important;padding:12px 15px!important;background:var(--item-color,#fff)!important;border:1px solid rgba(15,23,42,.10)!important;border-radius:28px!important;margin:0 0 8px!important;cursor:pointer;box-shadow:0 4px 14px rgba(15,23,42,.09)!important;overflow:hidden;color:#111827!important}
 .day-calendar .calendar-item *{color:#111827!important;-webkit-text-fill-color:#111827!important}
-.final-day-item-main{width:100%;min-width:0}
-.final-day-item-title{display:block;width:100%;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px;line-height:20px;font-weight:800}
-.final-day-item-meta{display:block;width:100%;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;line-height:15px;font-weight:600}
 
 /* Month */
 .google-month-calendar{width:100%;background:var(--calendar-bg);border:1px solid var(--calendar-border);border-radius:14px;overflow:hidden}
@@ -66,7 +60,7 @@
 .google-month-event *{color:#111827!important}
 .google-month-more{color:#111827;font-size:10px;font-weight:600;padding:2px 3px}
 
-/* Month selector — exactly one arrow, supplied by schedule-v2 */
+/* Month selector */
 .calendar-title-wrap{position:relative}
 .calendar-month-title{border:0;background:transparent;font-size:17px;font-weight:800;color:#111827!important;padding:5px 0;border-radius:8px;white-space:nowrap}
 .calendar-month-title::before{content:none!important}
@@ -104,10 +98,7 @@
 
     .day-calendar{gap:8px!important}
     .day-title{font-size:16px!important;margin-bottom:4px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-    .day-calendar .calendar-item,
-    .calendar-item.final-day-item{padding:12px 14px!important;border-radius:28px!important}
-    .final-day-item-title{font-size:14px!important}
-    .final-day-item-meta{font-size:11px!important}
+    .day-calendar .calendar-item{padding:12px 14px!important;border-radius:28px!important}
 
     .google-month-calendar{border-radius:12px}
     .google-month-weekdays>div{padding:7px 2px;font-size:9px}
