@@ -84,7 +84,14 @@
     window.openEventEditor = function(id) {
       const result = editor.apply(this, arguments);
       const button = document.getElementById('deleteEvent');
-      if (button) button.dataset.itdetiEventId = id ? String(id) : '';
+      if (button) {
+        button.dataset.itdetiEventId = id ? String(id) : '';
+        // Save the original inline/button handler once. Recurring events will
+        // never call it; ordinary events will continue using it unchanged.
+        if (!button.__itdetiLegacyDeleteHandler && typeof button.onclick === 'function') {
+          button.__itdetiLegacyDeleteHandler = button.onclick;
+        }
+      }
       return result;
     };
 
@@ -94,22 +101,28 @@
       const eventId = button.dataset.itdetiEventId;
       if (!eventId) return;
 
-      // The legacy handler is attached to this button. Cancel the browser's
-      // default action immediately; otherwise an async lookup would be too late.
+      // IMPORTANT: stop the old handler synchronously. The previous version
+      // waited for the API request first, so the legacy confirm() appeared.
       event.preventDefault();
+      event.stopImmediatePropagation();
+
+      const legacyHandler = button.__itdetiLegacyDeleteHandler || button.onclick;
 
       (async () => {
         try {
-          const response = await API(`/events/${eventId}`);
-          if (!response?.recurring_event_id) {
-            // Ordinary event: preserve the existing delete behaviour.
-            // We stopped propagation only if this is a recurring event, so the
-            // normal handler can continue for ordinary events.
+          // API() already attaches the current authorization token.
+          const item = await API(`/events/${eventId}`);
+
+          if (!item?.recurring_event_id) {
+            // This is a normal event. Re-run only its original handler because
+            // propagation was stopped above to prevent duplicate execution.
+            if (typeof legacyHandler === 'function') {
+              await legacyHandler.call(button, event);
+            } else {
+              window.appNotify?.('Не удалось передать обычное удаление стандартному обработчику.');
+            }
             return;
           }
-
-          // Only recurring events are fully intercepted.
-          event.stopImmediatePropagation();
 
           const choice = await new Promise(resolve => {
             const body = `<div class="form" style="gap:10px">
@@ -129,18 +142,17 @@
           if (choice === 'one') {
             await API(`/events/${eventId}`, {method:'DELETE'});
           } else if (choice === 'series') {
-            await API(`/recurring-events/${response.recurring_event_id}/all`, {method:'DELETE'});
+            await API(`/recurring-events/${item.recurring_event_id}/all`, {method:'DELETE'});
           } else {
             return;
           }
 
+          window.closeModal?.();
           await window.loadCalendar?.();
           await window.loadDashboard?.();
         } catch (error) {
-          // If metadata lookup failed, do not show a second confirmation.
-          // The user can retry the action instead of accidentally deleting.
           console.error('ITDETI recurring delete:', error);
-          window.appNotify?.(error?.message || 'Не удалось определить тип события.');
+          window.appNotify?.(error?.message || 'Не удалось удалить событие.');
         }
       })();
     }, true);
