@@ -64,8 +64,31 @@
     const listButton=view.querySelector('[data-calendar-view="list"]');
     if(listButton){
       view.dataset.itdetiMobileScheduleOpened='1';
-      if(listButton.dataset.calendarView!=='list')listButton.click();
+      const isListActive=listButton.classList.contains('active') || listButton.getAttribute('aria-pressed')==='true';
+      if(!isListActive)listButton.click();
     }
+  }
+
+  function polishMobileListHeaders(){
+    if(!window.matchMedia('(max-width: 760px)').matches)return;
+    const months={янв:'январь',фев:'февраль',мар:'март',апр:'апрель',май:'май',июн:'июнь',июл:'июль',авг:'август',сен:'сентябрь',сент:'сентябрь',окт:'октябрь',ноя:'ноябрь',дек:'декабрь'};
+    const now=new Date();
+    document.querySelectorAll('.list-day').forEach(day=>{
+      const headers=day.querySelectorAll('.list-day-header,.list-day-title');
+      let text='';
+      headers.forEach(h=>{text+=` ${h.textContent||''}`;});
+      const lower=text.toLowerCase();
+      const isToday=lower.includes('сегодня') || new RegExp(`\\b${now.getDate()}\\s*(?:${Object.keys(months).join('|')})\\b`,'i').test(lower) && lower.includes(Object.keys(months).find(k=>months[k]===months[Object.keys(months).find(k=>k===k)]));
+      day.classList.toggle('itdeti-today',!!isToday);
+      headers.forEach(h=>{
+        let html=h.innerHTML;
+        Object.entries(months).forEach(([short,full])=>{
+          html=html.replace(new RegExp(`\\b${short}\\b`,'gi'),full);
+        });
+        h.innerHTML=html;
+        h.style.color='#111827';
+      });
+    });
   }
 
   function addScheduleActions(){
@@ -95,6 +118,7 @@
     }
     removeOldScheduleButtons();
     ensureMobileDefaultList();
+    polishMobileListHeaders();
   }
 
   function choiceModal(title,choices){return new Promise(resolve=>{const body=`<div class="form"><div style="color:var(--muted);font-size:13px;margin-bottom:2px">Выберите, что добавить:</div><div class="itdeti-choice-grid">${choices.map(x=>`<button class="itdeti-choice" data-choice="${esc(x.id)}"><strong>${esc(x.title)}</strong><span>${esc(x.description)}</span></button>`).join('')}</div><div class="form-actions"><button class="btn" id="itdetiChoiceCancel">Отмена</button></div></div>`;window.openModal(title,body);document.querySelectorAll('.itdeti-choice').forEach(button=>button.onclick=()=>{const value=button.dataset.choice;window.closeModal();resolve(value);});$('#itdetiChoiceCancel').onclick=()=>{window.closeModal();resolve(null);};});}
@@ -112,16 +136,12 @@
   function fixCalendarContrast(){
     const selectors=['#calendar .calendar-event','#calendar .calendar-item','#calendar .agenda-card','#calendar .google-month-event'];
     document.querySelectorAll(selectors.join(',')).forEach(el=>{
-      const raw=getComputedStyle(el).backgroundColor;
-      const m=raw.match(/rgba?\(([^)]+)\)/i);if(!m)return;
-      const parts=m[1].split(',').map(x=>parseFloat(x.trim()));if(parts.length<3)return;
-      const [r,g,b]=parts;
-      const lum=(0.2126*r+0.7152*g+0.0722*b)/255;
-      const light=lum>0.56;
-      const text=light?'#111827':'#ffffff';
-      const muted=light?'rgba(17,24,39,.68)':'rgba(255,255,255,.86)';
-      el.style.setProperty('color',text,'important');
-      el.querySelectorAll('.calendar-event-meta,.agenda-card-meta,.small,.muted').forEach(child=>child.style.setProperty('color',muted,'important'));
+      el.style.setProperty('color','#111827','important');
+      el.style.setProperty('-webkit-text-fill-color','#111827','important');
+      el.querySelectorAll('*').forEach(child=>{
+        child.style.setProperty('color','#111827','important');
+        child.style.setProperty('-webkit-text-fill-color','#111827','important');
+      });
     });
   }
 
