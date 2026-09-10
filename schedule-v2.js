@@ -2,7 +2,7 @@
 (function () {
   const API = window.api;
   const $ = window.$;
-  const esc = window.esc || (v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
+  const esc = window.esc || (v => String(v ?? '').replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c])));
 
   function localDateTimeValue(date = new Date()) {
     const pad = n => String(n).padStart(2, '0');
@@ -41,37 +41,49 @@
     return heading?.closest('.view') || heading?.parentElement?.parentElement || null;
   }
 
-  function hideOldScheduleButtons() {
-    ['addEvent','addRecurringEventV2','addManualLessonV2'].forEach(id => document.getElementById(id)?.style.setProperty('display','none','important'));
+  /*
+   * Legacy buttons are removed from the DOM, not hidden.
+   * New controls are independent and do not use legacy buttons as anchors.
+   */
+  function removeOldScheduleButtons(view) {
+    if (!view) return;
+    ['addEvent','addLesson','addRecurringEventV2','addManualLessonV2'].forEach(id => {
+      view.querySelector(`#${id}`)?.remove();
+    });
   }
 
   function addScheduleActions() {
-    const addEvent = document.getElementById('addEvent');
     const view = scheduleView();
-    if (!addEvent || !view) return;
-    const host = addEvent.parentElement;
-    if (!host) return;
-    hideOldScheduleButtons();
+    if (!view) return;
 
+    removeOldScheduleButtons(view);
+
+    const header = view.querySelector('.page-header');
+    if (!header) return;
+
+    /* Desktop: exactly two new buttons. */
     if (!document.getElementById('itdetiScheduleActions')) {
       const desktop = document.createElement('div');
-      desktop.id = 'itdetiScheduleActions'; desktop.className = 'itdeti-schedule-actions';
-      desktop.innerHTML = `<button class="btn" id="itdetiAddLesson">+ Добавить урок</button><button class="btn" id="itdetiAddEvent">+ Добавить событие</button>`;
-      host.appendChild(desktop);
+      desktop.id = 'itdetiScheduleActions';
+      desktop.className = 'itdeti-schedule-actions';
+      desktop.innerHTML = `<button type="button" class="btn" id="itdetiAddLesson">+ Добавить урок</button><button type="button" class="btn" id="itdetiAddEvent">+ Добавить событие</button>`;
+      header.appendChild(desktop);
       $('#itdetiAddLesson').onclick = openLessonChooser;
       $('#itdetiAddEvent').onclick = openEventChooser;
     }
 
-    const header = view.querySelector('.page-header') || view.querySelector('h1')?.parentElement;
-    if (!header || document.getElementById('itdetiMobileAdd')) return;
-    const mobile = document.createElement('div');
-    mobile.id = 'itdetiMobileAdd'; mobile.className = 'itdeti-mobile-add';
-    mobile.innerHTML = `<button class="icon-btn" id="itdetiMobileAddToggle" aria-label="Добавить">+</button><div class="itdeti-mobile-add-menu" id="itdetiMobileAddMenu" style="display:none"><button id="itdetiMobileAddLesson">Добавить урок</button><button id="itdetiMobileAddEvent">Добавить событие</button></div>`;
-    header.appendChild(mobile);
-    const toggle = $('#itdetiMobileAddToggle'), menu = $('#itdetiMobileAddMenu');
-    toggle.onclick = event => { event.stopPropagation(); menu.style.display = menu.style.display === 'none' ? 'block' : 'none'; };
-    $('#itdetiMobileAddLesson').onclick = () => { menu.style.display='none'; openLessonChooser(); };
-    $('#itdetiMobileAddEvent').onclick = () => { menu.style.display='none'; openEventChooser(); };
+    /* Mobile: one + button with two actions. */
+    if (!document.getElementById('itdetiMobileAdd')) {
+      const mobile = document.createElement('div');
+      mobile.id = 'itdetiMobileAdd';
+      mobile.className = 'itdeti-mobile-add';
+      mobile.innerHTML = `<button type="button" class="icon-btn" id="itdetiMobileAddToggle" aria-label="Добавить">+</button><div class="itdeti-mobile-add-menu" id="itdetiMobileAddMenu" style="display:none"><button type="button" id="itdetiMobileAddLesson">Добавить урок</button><button type="button" id="itdetiMobileAddEvent">Добавить событие</button></div>`;
+      header.appendChild(mobile);
+      const toggle = $('#itdetiMobileAddToggle'), menu = $('#itdetiMobileAddMenu');
+      toggle.onclick = event => { event.stopPropagation(); menu.style.display = menu.style.display === 'none' ? 'block' : 'none'; };
+      $('#itdetiMobileAddLesson').onclick = () => { menu.style.display='none'; openLessonChooser(); };
+      $('#itdetiMobileAddEvent').onclick = () => { menu.style.display='none'; openEventChooser(); };
+    }
   }
 
   function choiceModal(title, choices) {
