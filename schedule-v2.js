@@ -81,64 +81,68 @@
     if (typeof editor !== 'function') return;
 
     window.__itdetiRecurringDeleteUIInstalled = true;
-    window.openEventEditor = async function(id) {
+    window.openEventEditor = function(id) {
       const result = editor.apply(this, arguments);
       const button = document.getElementById('deleteEvent');
-      if (button) {
-        button.dataset.itdetiEventId = id ? String(id) : '';
-      }
+      if (button) button.dataset.itdetiEventId = id ? String(id) : '';
       return result;
     };
 
-    document.addEventListener('click', async function(event) {
+    document.addEventListener('click', function(event) {
       const button = event.target.closest?.('#deleteEvent');
       if (!button) return;
       const eventId = button.dataset.itdetiEventId;
       if (!eventId) return;
 
-      const apiHeaders = new Headers();
-      try {
-        // Intercept before the legacy handler so its old confirmation never appears.
-        const rawToken = localStorage.getItem('itdeti_access_token');
-        if (rawToken) apiHeaders.set('Authorization', `Bearer ${rawToken}`);
-        const currentApi = window.API_BASE_URL || window.apiBaseUrl || '';
-        const base = currentApi || location.origin;
-        const response = await fetch(new URL(`/events/${eventId}`, base), {method:'GET', headers:apiHeaders});
-        if (!response.ok) return;
-        const item = await response.json();
-        if (!item?.recurring_event_id) return;
+      // The legacy handler is attached to this button. Cancel the browser's
+      // default action immediately; otherwise an async lookup would be too late.
+      event.preventDefault();
 
-        event.preventDefault();
-        event.stopImmediatePropagation();
+      (async () => {
+        try {
+          const response = await API(`/events/${eventId}`);
+          if (!response?.recurring_event_id) {
+            // Ordinary event: preserve the existing delete behaviour.
+            // We stopped propagation only if this is a recurring event, so the
+            // normal handler can continue for ordinary events.
+            return;
+          }
 
-        const choice = await new Promise(resolve => {
-          const body = `<div class="form" style="gap:10px">
-            <div style="color:var(--muted);font-size:13px">Это событие входит в повторяющуюся серию.</div>
-            <div class="form-actions" style="justify-content:stretch;flex-wrap:wrap">
-              <button class="btn" id="itdDeleteOne">Удалить текущее</button>
-              <button class="btn" id="itdDeleteSeries">Удалить серию</button>
-              <button class="btn" id="itdDeleteCancel">Отмена</button>
-            </div>
-          </div>`;
-          window.openModal('Удаление события', body);
-          $('#itdDeleteOne').onclick = () => { window.closeModal(); resolve('one'); };
-          $('#itdDeleteSeries').onclick = () => { window.closeModal(); resolve('series'); };
-          $('#itdDeleteCancel').onclick = () => { window.closeModal(); resolve('cancel'); };
-        });
+          // Only recurring events are fully intercepted.
+          event.stopImmediatePropagation();
 
-        if (choice === 'one') {
-          await API(`/events/${eventId}`, {method:'DELETE'});
-        } else if (choice === 'series') {
-          await API(`/recurring-events/${item.recurring_event_id}/all`, {method:'DELETE'});
-        } else {
-          return;
+          const choice = await new Promise(resolve => {
+            const body = `<div class="form" style="gap:10px">
+              <div style="color:var(--muted);font-size:13px">Это событие входит в повторяющуюся серию.</div>
+              <div class="form-actions" style="justify-content:stretch;flex-wrap:wrap">
+                <button class="btn" id="itdDeleteOne">Удалить текущее</button>
+                <button class="btn" id="itdDeleteSeries">Удалить серию</button>
+                <button class="btn" id="itdDeleteCancel">Отмена</button>
+              </div>
+            </div>`;
+            window.openModal('Удаление события', body);
+            $('#itdDeleteOne').onclick = () => { window.closeModal(); resolve('one'); };
+            $('#itdDeleteSeries').onclick = () => { window.closeModal(); resolve('series'); };
+            $('#itdDeleteCancel').onclick = () => { window.closeModal(); resolve('cancel'); };
+          });
+
+          if (choice === 'one') {
+            await API(`/events/${eventId}`, {method:'DELETE'});
+          } else if (choice === 'series') {
+            await API(`/recurring-events/${response.recurring_event_id}/all`, {method:'DELETE'});
+          } else {
+            return;
+          }
+
+          await window.loadCalendar?.();
+          await window.loadDashboard?.();
+        } catch (error) {
+          // If metadata lookup failed, do not show a second confirmation.
+          // The user can retry the action instead of accidentally deleting.
+          console.error('ITDETI recurring delete:', error);
+          window.appNotify?.(error?.message || 'Не удалось определить тип события.');
         }
-
-        await window.loadCalendar?.();
-        await window.loadDashboard?.();
-      } catch (_) {
-        // Leave ordinary event deletion untouched if this is not a recurring event.
-      }
+      })();
     }, true);
   }
 
