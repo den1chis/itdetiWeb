@@ -75,63 +75,71 @@
     };
   }
 
-  function installScheduleDateBridge() {
-    if (window.__itdetiScheduleFetchPatched) return;
-    window.__itdetiScheduleFetchPatched = true;
-    const originalFetch = window.fetch.bind(window);
-    window.fetch = async function(input, init = {}) {
-      try {
-        const rawUrl = typeof input === 'string' ? input : input?.url || '';
-        const requestMethod = (init?.method || (typeof input !== 'string' ? input?.method : '') || 'GET').toUpperCase();
-        const parsedUrl = rawUrl ? new URL(rawUrl, window.location.href) : null;
-        const pathname = parsedUrl?.pathname || rawUrl;
+  function installRecurringDeleteUI() {
+    if (window.__itdetiRecurringDeleteUIInstalled) return;
+    const editor = window.openEventEditor;
+    if (typeof editor !== 'function') return;
 
-        if (requestMethod === 'POST' && /\/students\/[^/]+\/schedule\/?$/.test(pathname) && init.body) {
-          const selected = document.querySelector('.new-slot-valid-from-v2');
-          if (selected?.value) {
-            const payload = JSON.parse(init.body);
-            payload.valid_from = selected.value;
-            init = {...init, body: JSON.stringify(payload)};
-          }
-        }
-
-        if (requestMethod === 'DELETE' && /\/events\/[^/]+\/?$/.test(pathname) && !init.__itdetiRecurringDeleteHandled) {
-          const match = pathname.match(/\/events\/([^/]+)\/?$/);
-          const eventId = match?.[1];
-          if (eventId) {
-            try {
-              // The API helper has already put its Authorization header into init.headers.
-              // Ask the backend for this exact event, so the decision never depends on the calendar list.
-              const headers = new Headers(init.headers || {});
-              const eventUrl = new URL(`/events/${eventId}`, parsedUrl?.origin || window.location.origin).toString();
-              const metaResponse = await originalFetch(eventUrl, {method:'GET', headers});
-              if (metaResponse.ok) {
-                const event = await metaResponse.json();
-                if (event?.recurring_event_id) {
-                  const deleteOnly = window.appConfirm
-                    ? await window.appConfirm('Это событие входит в повторяющуюся серию. Удалить только выбранное событие?')
-                    : window.confirm('Это событие входит в повторяющуюся серию. Удалить только выбранное событие?');
-                  if (deleteOnly) return originalFetch(input, {...init, __itdetiRecurringDeleteHandled:true});
-
-                  const deleteAll = window.appConfirm
-                    ? await window.appConfirm('Удалить всю повторяющуюся серию? Все её созданные события будут скрыты из календаря.')
-                    : window.confirm('Удалить всю повторяющуюся серию?');
-                  if (!deleteAll) return new Response(null, {status:204});
-
-                  const seriesUrl = new URL(`/recurring-events/${event.recurring_event_id}/all`, parsedUrl?.origin || window.location.origin).toString();
-                  const seriesResponse = await originalFetch(seriesUrl, {method:'DELETE', headers:new Headers(headers)});
-                  if (!seriesResponse.ok) return seriesResponse;
-                  return new Response(null, {status:204});
-                }
-              }
-            } catch (_) {
-              // If metadata lookup fails, preserve the original single-event deletion behavior.
-            }
-          }
-        }
-      } catch (_) {}
-      return originalFetch(input, init);
+    window.__itdetiRecurringDeleteUIInstalled = true;
+    window.openEventEditor = async function(id) {
+      const result = editor.apply(this, arguments);
+      const button = document.getElementById('deleteEvent');
+      if (button) {
+        button.dataset.itdetiEventId = id ? String(id) : '';
+      }
+      return result;
     };
+
+    document.addEventListener('click', async function(event) {
+      const button = event.target.closest?.('#deleteEvent');
+      if (!button) return;
+      const eventId = button.dataset.itdetiEventId;
+      if (!eventId) return;
+
+      const apiHeaders = new Headers();
+      try {
+        // Intercept before the legacy handler so its old confirmation never appears.
+        const rawToken = localStorage.getItem('itdeti_access_token');
+        if (rawToken) apiHeaders.set('Authorization', `Bearer ${rawToken}`);
+        const currentApi = window.API_BASE_URL || window.apiBaseUrl || '';
+        const base = currentApi || location.origin;
+        const response = await fetch(new URL(`/events/${eventId}`, base), {method:'GET', headers:apiHeaders});
+        if (!response.ok) return;
+        const item = await response.json();
+        if (!item?.recurring_event_id) return;
+
+        event.preventDefault();
+        event.stopImmediatePropagation();
+
+        const choice = await new Promise(resolve => {
+          const body = `<div class="form" style="gap:10px">
+            <div style="color:var(--muted);font-size:13px">Это событие входит в повторяющуюся серию.</div>
+            <div class="form-actions" style="justify-content:stretch;flex-wrap:wrap">
+              <button class="btn" id="itdDeleteOne">Удалить текущее</button>
+              <button class="btn" id="itdDeleteSeries">Удалить серию</button>
+              <button class="btn" id="itdDeleteCancel">Отмена</button>
+            </div>
+          </div>`;
+          window.openModal('Удаление события', body);
+          $('#itdDeleteOne').onclick = () => { window.closeModal(); resolve('one'); };
+          $('#itdDeleteSeries').onclick = () => { window.closeModal(); resolve('series'); };
+          $('#itdDeleteCancel').onclick = () => { window.closeModal(); resolve('cancel'); };
+        });
+
+        if (choice === 'one') {
+          await API(`/events/${eventId}`, {method:'DELETE'});
+        } else if (choice === 'series') {
+          await API(`/recurring-events/${item.recurring_event_id}/all`, {method:'DELETE'});
+        } else {
+          return;
+        }
+
+        await window.loadCalendar?.();
+        await window.loadDashboard?.();
+      } catch (_) {
+        // Leave ordinary event deletion untouched if this is not a recurring event.
+      }
+    }, true);
   }
 
   function patchScheduleStartDate() {
@@ -144,7 +152,11 @@
     wrapper.querySelector('input').value=localDateValue(); host.appendChild(wrapper);
   }
 
-  function scan() { addButtons(); patchScheduleStartDate(); installScheduleDateBridge(); }
+  function scan() {
+    addButtons();
+    patchScheduleStartDate();
+    installRecurringDeleteUI();
+  }
   const observer=new MutationObserver(scan); observer.observe(document.body,{childList:true,subtree:true});
-  setTimeout(scan,300); setTimeout(scan,1000); setTimeout(scan,2500);
+  setTimeout(scan,300); setTimeout(scan,1000); setTimeout(scan,2500); setInterval(installRecurringDeleteUI,1000);
 })();
