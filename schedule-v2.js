@@ -23,7 +23,7 @@
     style.id = 'itdetiScheduleAddStyles';
     style.textContent = `
       .itdeti-schedule-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-      .itdeti-mobile-add{display:none;position:relative}
+      .itdeti-mobile-add{display:none;position:relative;margin-left:auto}
       .itdeti-mobile-add-menu{position:absolute;right:0;top:calc(100% + 7px);z-index:1000;min-width:180px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow)}
       .itdeti-mobile-add-menu button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:10px 11px;border-radius:8px}
       .itdeti-mobile-add-menu button:hover{background:var(--surface-soft)}
@@ -41,37 +41,43 @@
     return heading?.closest('.view') || heading?.parentElement?.parentElement || null;
   }
 
-  function hideOldScheduleButtons() {
-    ['addEvent','addRecurringEventV2','addManualLessonV2'].forEach(id => document.getElementById(id)?.style.setProperty('display','none','important'));
+  function removeLegacyScheduleButtons() {
+    ['addEvent','addRecurringEventV2','addManualLessonV2'].forEach(id => document.getElementById(id)?.remove());
   }
 
   function addScheduleActions() {
-    const addEvent = document.getElementById('addEvent');
+    const legacyAddEvent = document.getElementById('addEvent');
     const view = scheduleView();
-    if (!addEvent || !view) return;
-    const host = addEvent.parentElement;
-    if (!host) return;
-    hideOldScheduleButtons();
+    if (!view) return;
 
-    if (!document.getElementById('itdetiScheduleActions')) {
-      const desktop = document.createElement('div');
-      desktop.id = 'itdetiScheduleActions'; desktop.className = 'itdeti-schedule-actions';
-      desktop.innerHTML = `<button class="btn" id="itdetiAddLesson">+ Добавить урок</button><button class="btn" id="itdetiAddEvent">+ Добавить событие</button>`;
-      host.appendChild(desktop);
-      $('#itdetiAddLesson').onclick = openLessonChooser;
-      $('#itdetiAddEvent').onclick = openEventChooser;
+    const host = legacyAddEvent?.parentElement;
+    if (host) {
+      removeLegacyScheduleButtons();
+      if (!document.getElementById('itdetiScheduleActions')) {
+        const desktop = document.createElement('div');
+        desktop.id = 'itdetiScheduleActions';
+        desktop.className = 'itdeti-schedule-actions';
+        desktop.innerHTML = `<button class="btn" id="itdetiAddLesson">+ Добавить урок</button><button class="btn" id="itdetiAddEvent">+ Добавить событие</button>`;
+        host.appendChild(desktop);
+        $('#itdetiAddLesson').onclick = openLessonChooser;
+        $('#itdetiAddEvent').onclick = openEventChooser;
+      }
     }
 
     const header = view.querySelector('.page-header') || view.querySelector('h1')?.parentElement;
-    if (!header || document.getElementById('itdetiMobileAdd')) return;
-    const mobile = document.createElement('div');
-    mobile.id = 'itdetiMobileAdd'; mobile.className = 'itdeti-mobile-add';
-    mobile.innerHTML = `<button class="icon-btn" id="itdetiMobileAddToggle" aria-label="Добавить">+</button><div class="itdeti-mobile-add-menu" id="itdetiMobileAddMenu" style="display:none"><button id="itdetiMobileAddLesson">Добавить урок</button><button id="itdetiMobileAddEvent">Добавить событие</button></div>`;
-    header.appendChild(mobile);
-    const toggle = $('#itdetiMobileAddToggle'), menu = $('#itdetiMobileAddMenu');
-    toggle.onclick = event => { event.stopPropagation(); menu.style.display = menu.style.display === 'none' ? 'block' : 'none'; };
-    $('#itdetiMobileAddLesson').onclick = () => { menu.style.display='none'; openLessonChooser(); };
-    $('#itdetiMobileAddEvent').onclick = () => { menu.style.display='none'; openEventChooser(); };
+    if (!header) return;
+    if (!document.getElementById('itdetiMobileAdd')) {
+      const mobile = document.createElement('div');
+      mobile.id = 'itdetiMobileAdd';
+      mobile.className = 'itdeti-mobile-add';
+      mobile.innerHTML = `<button class="icon-btn" id="itdetiMobileAddToggle" aria-label="Добавить">+</button><div class="itdeti-mobile-add-menu" id="itdetiMobileAddMenu" style="display:none"><button id="itdetiMobileAddLesson">Добавить урок</button><button id="itdetiMobileAddEvent">Добавить событие</button></div>`;
+      header.appendChild(mobile);
+      const toggle = $('#itdetiMobileAddToggle'), menu = $('#itdetiMobileAddMenu');
+      toggle.onclick = event => { event.stopPropagation(); menu.style.display = menu.style.display === 'none' ? 'block' : 'none'; };
+      $('#itdetiMobileAddLesson').onclick = () => { menu.style.display='none'; openLessonChooser(); };
+      $('#itdetiMobileAddEvent').onclick = () => { menu.style.display='none'; openEventChooser(); };
+      document.addEventListener('click', event => { if (!mobile.contains(event.target)) menu.style.display='none'; });
+    }
   }
 
   function choiceModal(title, choices) {
