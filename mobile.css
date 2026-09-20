@@ -79,3 +79,15 @@
     .modal { align-items:flex-end!important;padding:0!important;background:rgba(15,23,42,.48);z-index:20000!important; }.modal-box{width:100%!important;max-width:none!important;max-height:94dvh!important;border-radius:20px 20px 0 0!important;padding-bottom:env(safe-area-inset-bottom);}.modal-header{padding:13px 14px!important;position:sticky;top:0;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:2;}.modal-header h2{font-size:16px!important;}.modal-body{padding:14px!important;}.form{gap:10px!important;}.form-group input,.form-group select,.form-group textarea{min-height:42px;font-size:16px!important;}.form-actions{position:sticky;bottom:0;padding-top:9px;margin-top:9px;background:linear-gradient(to top,#fff 70%,rgba(255,255,255,0));}.form-actions .btn{min-height:42px;}
 }
 @media (max-width:390px){.main{padding-left:9px!important;padding-right:9px!important;}.stats,.finance-grid{gap:7px!important;}.stat{padding:11px!important;}.stat-value,.money-large{font-size:16px!important;}.nav button{font-size:9px!important;}}
+
+
+/* ITDETI_MOBILE_MONTH_PICKER_FIX_V1 */
+@media (max-width:760px){
+    #calendarTitle,
+    #calendarTitle .calendar-title-wrap{
+        overflow:visible!important;
+    }
+    #calendarTitle .calendar-month-picker{
+        z-index:1000!important;
+    }
+}
