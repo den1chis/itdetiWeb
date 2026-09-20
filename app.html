@@ -5124,7 +5124,7 @@ function renderWeekCalendar(start) {
                      style="top:${top}px;height:${height}px;--item-color:${color};"
                      onclick="event.stopPropagation();openCalendarItem('${item.item_id}','${item.item_type}');">
                     <div class="calendar-event-title">${esc(item.item_type === "event" ? item.title : (item.student_name || item.title))}</div>
-                    <div class="calendar-event-meta">${dt.toLocaleTimeString("ru-RU", {hour:"2-digit", minute:"2-digit"})}</div>
+                    <div class="calendar-event-meta">${calendarTimeRange(item)}</div>
                 </div>`;
         });
         html += `</div>`;
@@ -5264,17 +5264,40 @@ function calendarColor(item) {
 
 function getVisibleLessonStatus(item) { return item.item_type === "lesson" && Date.now() >= new Date(item.end_time).getTime() ? "Проведено" : "Запланировано"; }
 
+function calendarTimeRange(item) {
+    const start = new Date(item.start_time);
+    if (Number.isNaN(start.getTime())) return "";
+
+    const startText = start.toLocaleTimeString("ru-RU", {
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+
+    if (!item.end_time) return startText;
+
+    const end = new Date(item.end_time);
+    if (Number.isNaN(end.getTime())) return startText;
+
+    const endText = end.toLocaleTimeString("ru-RU", {
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+
+    return `${startText}–${endText}`;
+}
+
 function calendarItemHtml(item) {
     const color = calendarColor(item);
     const title = item.item_type === "event" ? item.title : (item.student_name || item.title);
     const subtitle = item.item_type === "event" ? (item.location || "") : (item.lesson_kind === "masterclass" ? "Мастер-класс" : "Урок");
+    const timeRange = calendarTimeRange(item);
     return `
         <div class="calendar-item calendar-colored"
              style="--item-color:${color}"
              onclick="openCalendarItem('${item.item_id}','${item.item_type}')">
             <div>
                 <b>${esc(title)}</b>
-                <div class="small">${formatDateTime(item.start_time)}${subtitle ? ` · ${esc(subtitle)}` : ""}</div>
+                <div class="small">${timeRange}${subtitle ? ` · ${esc(subtitle)}` : ""}</div>
             </div>
         </div>`;
 }
