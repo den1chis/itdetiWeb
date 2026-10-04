@@ -14,7 +14,7 @@
 .calendar-left{display:flex;align-items:center;gap:6px;min-width:0}
 .calendar-title{font-size:17px;font-weight:800;margin:0 12px;min-width:0}
 .view-switcher{display:flex;flex:0 1 auto;min-width:0;border:1px solid var(--border);border-radius:12px;overflow:hidden}
-.view-switcher button{border:0;background:#fff;padding:8px 10px;font-size:12px;min-width:0}
+.view-switcher button{border:0;background:#fff;padding:9px 18px;font-size:12px;min-width:88px}
 .view-switcher button.active{background:#eef0ff;color:var(--primary);font-weight:700}
 
 /* Week — preserve the color stored on every item. */
