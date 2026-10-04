@@ -85,9 +85,11 @@
 
 @media(max-width:760px){
     .calendar-toolbar{position:relative!important;flex-direction:column!important;align-items:stretch!important;gap:9px!important;margin-top:46px!important;margin-bottom:10px!important;width:100%!important;max-width:100%!important}
-    .calendar-left{width:100%;max-width:100%;justify-content:space-between;gap:4px!important;position:relative!important}
-    .calendar-title{position:absolute!important;left:0!important;right:0!important;top:-43px!important;margin:0!important;height:36px!important;font-size:16px!important;text-align:left!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;white-space:nowrap;overflow:visible!important;z-index:5!important}
-    #calendarTitle{margin:0!important;display:flex!important;justify-content:center!important;align-items:center!important;min-width:0!important;max-width:100%!important;flex:1!important;overflow:visible!important;position:relative!important;z-index:20!important}
+    .calendar-left{width:100%;max-width:100%;justify-content:center!important;gap:6px!important;position:relative!important}
+    .calendar-title{position:absolute!important;left:0!important;right:0!important;top:-43px!important;margin:0!important;height:36px!important;font-size:16px!important;text-align:center!important;display:flex!important;align-items:center!important;justify-content:center!important;white-space:nowrap;overflow:visible!important;z-index:5!important;pointer-events:none!important}
+    #calendarTitle{margin:0!important;display:flex!important;justify-content:center!important;align-items:center!important;min-width:0!important;max-width:100%!important;flex:1!important;overflow:visible!important;position:absolute!important;left:0!important;right:0!important;top:-43px!important;z-index:20!important;pointer-events:none!important}
+    #calendarTitle .calendar-title-wrap{pointer-events:auto!important}
+    .calendar-toolbar .view-switcher{width:max-content!important;max-width:100%!important;margin-left:auto!important;margin-right:auto!important;display:grid!important;grid-template-columns:repeat(3,minmax(72px,1fr))!important}
     #calendarTitle .calendar-title-wrap{display:inline-flex;align-items:center;justify-content:center;max-width:100%;position:relative;min-width:0;overflow:visible!important;z-index:1001!important}
     #calendarTitle .calendar-month-title{font-size:18px!important;font-weight:800!important;padding:5px 28px 5px 0!important;color:#111827!important;-webkit-text-fill-color:#111827!important;position:relative;max-width:100%!important}
     #calendarTitle .calendar-month-title::before{content:none!important}
