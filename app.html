@@ -5576,6 +5576,25 @@ async function openCalendarItem(
                     </div>
 
 
+                    ${
+                        item.lesson_status === "cancelled" ||
+                        item.lesson_status === "completed" ||
+                        Date.now() >= new Date(item.end_time).getTime()
+                        ? ""
+                        : `<div class="form-group" style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+                            <label>Ход курса</label>
+                            <div class="small">
+                                Отменить: урок не состоится, его тема перейдёт на следующее занятие по расписанию.
+                                Другое время: тот же урок, но в другой день или час — темы не путаются.
+                            </div>
+                            <div class="form-actions" style="justify-content:flex-start;margin-top:8px">
+                                <button type="button" class="btn" id="cancelCalendarLesson">Отменить урок</button>
+                                <button type="button" class="btn" id="rescheduleCalendarLesson">Назначить на другое время</button>
+                            </div>
+                        </div>`
+                    }
+
+
                     <div class="form-actions">
 
                         <button
@@ -5633,7 +5652,9 @@ async function openCalendarItem(
                                             .value,
 
                                     start_time:
-                                        new Date(
+                                        $("#editStart").value === toLocalInput(item.start_time)
+                                        ? undefined
+                                        : new Date(
                                             $("#editStart")
                                                 .value
                                         ).toISOString(),
@@ -5688,13 +5709,82 @@ async function openCalendarItem(
             };
 
 
+        if ($("#cancelCalendarLesson")) {
+
+            $("#cancelCalendarLesson")
+                .onclick =
+                async () => {
+
+                    if (
+                        !await appConfirm(
+                            "Отменить этот урок? Он не состоится, а его тема перейдёт на следующее занятие по расписанию. Конец курса сдвинется."
+                        )
+                    )
+                        return;
+
+
+                    try {
+
+                        await api(
+                            `/lessons/${id}/cancel`,
+                            {
+                                method:
+                                    "POST"
+                            }
+                        );
+
+
+                        closeModal();
+
+                        await loadCalendar();
+
+                        await loadDashboard();
+
+                        await loadStudents();
+
+                    } catch (e) {
+
+                        appNotify(
+                            e.message
+                        );
+
+                    }
+
+                };
+
+        }
+
+
+        if ($("#rescheduleCalendarLesson")) {
+
+            $("#rescheduleCalendarLesson")
+                .onclick =
+                () => {
+
+                    const input =
+                        $("#editStart");
+
+                    input.focus();
+
+                    input.style.boxShadow =
+                        "0 0 0 2px var(--primary)";
+
+                    $("#saveCalendarItem")
+                        .textContent =
+                        "Перенести";
+
+                };
+
+        }
+
+
         $("#deleteCalendarItem")
             .onclick =
             async () => {
 
                 if (
                     !await appConfirm(
-                        "Удалить это занятие?"
+                        "Удалить это занятие? Если у ученика есть курс, тема этого урока перейдёт на следующее занятие по расписанию."
                     )
                 )
                     return;

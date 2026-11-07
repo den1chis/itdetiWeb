@@ -76,7 +76,7 @@
     const ENROLL = { active: 'Идёт', paused: 'Пауза', finished: 'Завершён' };
     const WEEKDAYS_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
-    const S = { tab: 'catalog', view: 'home', courseId: null, lessonId: null, studentId: null, studentName: '', studentCtx: null, showArchived: false, expanded: {} };
+    const S = { tab: 'catalog', view: 'home', courseId: null, lessonId: null, studentId: null, studentName: '', studentCtx: null, showArchived: false, expanded: {}, open: {} };
     // Программа курса у ученика раскрыта сразу (с датами уроков), пока её не свернули кнопкой.
     const isOpen = function (id) { return S.expanded[id] !== false; };
     const cache = { course: null, lesson: null, enrollments: [] };
@@ -280,12 +280,105 @@
       html += '<div class="card card-padding"><div class="itdl-list">' + students.map(function (s, i) {
         const list = results[i].status === 'fulfilled' ? results[i].value : [];
         const chips = list.length ? list.map(function (e) {
-          return '<span class="pill">' + esc(e.course_title) + ' ' + e.lessons_done + '/' + e.lessons_total + '</span>';
+          return '<span class="pill">' + esc(e.course_title) + ' ' + (e.lessons_held == null ? e.lessons_done : e.lessons_held) + '/' + e.lessons_total + '</span>';
         }).join(' ') : '<span class="small">Курс не назначен</span>';
         return '<div class="itdl-row" data-act="student-open" data-id="' + esc(s.id) + '" data-name="' + esc(s.full_name) + '">' +
           '<b>' + esc(s.full_name) + '</b><span class="itdl-tags">' + chips + '</span></div>';
       }).join('') + '</div></div>';
       return html;
+    }
+
+    // Уроки курса одним списком по порядку (для квадратиков): номер, урок и его дата.
+    function flatLessons(tree) {
+      const list = [];
+      if (!tree) return list;
+      tree.modules.forEach(function (m) { m.lessons.forEach(function (l) { list.push(l); }); });
+      return list;
+    }
+
+    // '2026-11-10T17:00:00+05:00' -> {day: '10.11', when: 'Вт 17:00'}
+    function squareDate(value) {
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return null;
+      return {
+        day: d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }),
+        when: WEEKDAYS_SHORT[(d.getDay() + 6) % 7] + ' ' + d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+      };
+    }
+
+    // Серый квадрат — урок запланирован, зелёный — прошёл (по календарю). Урок без даты — пунктир.
+    function squares(tree) {
+      const lessons = flatLessons(tree);
+      if (!lessons.length) return '';
+      const nextIndex = lessons.findIndex(function (l) { return l.scheduled_at && !l.held; });
+      return '<div class="itdl-squares">' + lessons.map(function (l, i) {
+        const when = l.scheduled_at ? squareDate(l.scheduled_at) : null;
+        const cls = 'itdl-sq' + (l.held ? ' held' : '') + (!when ? ' empty' : '') + (i === nextIndex ? ' next' : '');
+        const tip = 'Урок ' + (i + 1) + ': ' + l.title + (when ? ' · ' + fmtWhen(l.scheduled_at) : ' · дата пока не назначена') +
+          (l.calendar_status === 'rescheduled' ? ' (перенесён)' : '');
+        return '<button type="button" class="' + cls + '" data-act="lesson-open-ctx" data-id="' + esc(l.id) + '" title="' + esc(tip) + '">' +
+          '<span>№' + (i + 1) + '</span><b>' + (when ? when.day : '—') + '</b><span>' + (when ? when.when : 'нет даты') + '</span></button>';
+      }).join('') + '</div>' +
+        '<div class="itdl-legend"><span><i class="itdl-dot" style="background:#eef0f4;border:1px solid var(--border)"></i>запланирован</span>' +
+        '<span><i class="itdl-dot" style="background:#bfe8cd"></i>прошёл</span>' +
+        '<span><i class="itdl-dot" style="box-shadow:0 0 0 2px var(--primary)"></i>следующий</span></div>';
+    }
+
+    function stat(label, value) {
+      return '<div class="itdl-stat"><div class="itdl-stat-label">' + esc(label) + '</div><div class="itdl-stat-value">' + (value || '<span class="small">—</span>') + '</div></div>';
+    }
+
+    // Сворачиваемый блок: открыт ли он, запоминается между перерисовками.
+    function fold(key, title, inner, bare) {
+      return '<details class="itdl-fold' + (bare ? ' bare' : '') + '" data-fold="' + esc(key) + '"' + (S.open[key] ? ' open' : '') + '><summary><span>' + title + '</span></summary>' + inner + '</details>';
+    }
+
+    function courseCard(e, tree) {
+      const held = e.lessons_held == null ? e.lessons_done : e.lessons_held;
+      const pct = e.lessons_total ? Math.min(100, Math.round(held * 100 / e.lessons_total)) : 0;
+      const lessons = flatLessons(tree);
+      const next = lessons.find(function (l) { return l.scheduled_at && !l.held; });
+      const nextIndex = next ? lessons.indexOf(next) : -1;
+      const slots = scheduleText(e);
+      const paused = e.status === 'paused';
+      const actions = e.status === 'active'
+        ? '<button type="button" class="btn itdl-sm" data-act="enr-status-set" data-status="paused" data-id="' + esc(e.id) + '">Пауза</button>' +
+          '<button type="button" class="btn itdl-sm" data-act="enr-status-set" data-status="finished" data-id="' + esc(e.id) + '">Завершить</button>'
+        : '<button type="button" class="btn itdl-sm primary" data-act="enr-status-set" data-status="active" data-id="' + esc(e.id) + '">Возобновить</button>';
+
+      let html = '<div class="card card-padding itdl-module"><div class="itdl-head"><div class="itdl-tags">' +
+        '<b style="font-size:17px">' + esc(e.course_title) + '</b>' +
+        pill(ENROLL[e.status] || e.status, e.status === 'active' ? 'success' : (paused ? 'warning' : '')) + '</div>' +
+        '<div class="itdl-actions">' + actions +
+        '<button type="button" class="btn itdl-sm" data-act="enr-remove" data-id="' + esc(e.id) + '">Снять курс</button></div></div>';
+
+      html += '<div style="display:flex;align-items:baseline;gap:10px;margin-top:14px;flex-wrap:wrap"><span class="itdl-big">' + held +
+        '<span style="font-size:16px;color:var(--muted);font-weight:700"> из ' + e.lessons_total + '</span></span><span class="small">уроков пройдено</span></div>' +
+        '<div class="itdl-progress"><div class="itdl-progress-fill" style="width:' + pct + '%"></div></div>';
+
+      if (paused) {
+        html += '<div class="itdl-banner">Ученик на паузе: будущие занятия убраны из календаря. Нажмите «Возобновить» и задайте расписание в карточке ученика (вкладка «Ученики») — уроки встанут в календарь сами и продолжат курс.</div>';
+      }
+
+      html += '<div class="itdl-stats">' +
+        stat('Расписание', slots ? esc(slots) : '') +
+        stat('Назначен', esc(fmtDate(e.started_at))) +
+        stat('Конец курса', e.last_lesson_at ? esc(fmtDate(e.last_lesson_at)) : '') +
+        stat('Следующий урок', next
+          ? '<button type="button" class="itdl-link" data-act="lesson-open-ctx" data-id="' + esc(next.id) + '">№' + (nextIndex + 1) + ' ' + esc(next.title) + '</button><div class="small">' + esc(fmtWhen(next.scheduled_at)) + '</div>'
+          : '') + '</div>';
+
+      if (!paused && (!e.schedule || !e.schedule.length)) {
+        html += '<div class="itdl-banner">Расписание не задано. Добавьте его в карточке ученика (вкладка «Ученики»), и даты уроков появятся здесь и в календаре.</div>';
+      } else if (!paused && e.lessons_total && e.lessons_scheduled < e.lessons_total) {
+        html += '<div class="small" style="margin-top:8px">Даты назначены у ' + e.lessons_scheduled + ' из ' + e.lessons_total + ' уроков.</div>';
+      }
+
+      html += squares(tree);
+      if (tree) {
+        html += fold('program-' + e.id, 'Программа курса и прогресс', renderTree(tree));
+      }
+      return html + '</div>';
     }
 
     async function viewStudent() {
@@ -295,7 +388,7 @@
       S.studentName = student.full_name;
       cache.enrollments = enrollments;
       const trees = {};
-      await Promise.all(enrollments.filter(function (e) { return isOpen(e.id); }).map(async function (e) {
+      await Promise.all(enrollments.map(async function (e) {
         trees[e.id] = await call('/students/' + sid + '/courses/' + e.course_id + '/progress');
       }));
 
@@ -305,50 +398,18 @@
         (enrollments.length ? '' : '<div class="itdl-actions"><button type="button" class="btn primary" data-act="enroll">+ Назначить курс</button></div>') +
         '</div></div>';
 
-      html += '<div class="itdl-subtitle">Курсы ученика</div>';
-      html += enrollments.length ? enrollments.map(function (e) {
-        const pct = e.lessons_total ? Math.round(e.lessons_done * 100 / e.lessons_total) : 0;
-        const tree = trees[e.id];
-        return '<div class="card card-padding itdl-module"><div class="itdl-head"><div>' +
-          '<b>' + esc(e.course_title) + '</b> ' + pill(TYPE[e.course_type] || e.course_type, e.course_type === 'code' ? 'success' : '') + ' ' +
-          pill(ENROLL[e.status] || e.status, e.status === 'active' ? 'success' : (e.status === 'paused' ? 'warning' : '')) +
-          '</div><div class="itdl-actions">' +
-          '<button type="button" class="btn itdl-sm" data-act="enr-toggle" data-id="' + esc(e.id) + '">' + (isOpen(e.id) ? 'Скрыть программу' : 'Программа') + '</button>' +
-          (e.status === 'active'
-            ? '<button type="button" class="btn itdl-sm" data-act="enr-status-set" data-status="paused" data-id="' + esc(e.id) + '">Пауза</button>' +
-              '<button type="button" class="btn itdl-sm" data-act="enr-status-set" data-status="finished" data-id="' + esc(e.id) + '">Завершить</button>'
-            : '<button type="button" class="btn itdl-sm" data-act="enr-status-set" data-status="active" data-id="' + esc(e.id) + '">Возобновить</button>') +
-          '<button type="button" class="btn itdl-sm" data-act="enr-remove" data-id="' + esc(e.id) + '">Снять курс</button></div></div>' +
-          '<div class="itdl-progress"><div class="itdl-progress-fill" style="width:' + pct + '%"></div></div>' +
-          '<div class="small">Пройдено ' + e.lessons_done + ' из ' + e.lessons_total + ' · назначен ' + esc(fmtDate(e.started_at)) + '</div>' +
-          scheduleBlock(e) +
-          (e.next_lesson ? '<div style="margin-top:8px"><button type="button" class="btn itdl-sm primary" data-act="lesson-open-ctx" data-id="' + esc(e.next_lesson.id) + '">Следующий урок: ' + esc(e.next_lesson.title) + (e.next_lesson.scheduled_at ? ' · ' + esc(fmtWhen(e.next_lesson.scheduled_at)) : '') + '</button></div>'
-            : (e.lessons_total ? '<div class="small" style="margin-top:8px">Все уроки пройдены.</div>' : '')) +
-          (tree ? renderTree(tree) : '') + '</div>';
-      }).join('') : '<div class="card card-padding"><div class="empty">Курсы не назначены. Нажмите «+ Назначить курс».</div></div>';
+      html += enrollments.length ? enrollments.map(function (e) { return courseCard(e, trees[e.id]); }).join('')
+        : '<div class="card card-padding itdl-module"><div class="empty">Курсы не назначены. Нажмите «+ Назначить курс».</div></div>';
 
-      html += '<div class="itdl-subtitle">Заметки <span class="small">(видите только Вы)</span></div>';
-      html += '<div class="card card-padding"><div class="form-group"><textarea id="itdlNoteText" rows="3" placeholder="Заметка об ученике: что получилось, что повторить…"></textarea></div>' +
+      const notesInner = '<div class="form-group" style="margin-top:10px"><textarea id="itdlNoteText" rows="3" placeholder="Заметка об ученике: что получилось, что повторить…"></textarea></div>' +
         '<div class="itdl-actions" style="margin-top:8px"><button type="button" class="btn primary" data-act="note-add">Добавить заметку</button></div>' +
         (notes.length ? '<div class="itdl-notes">' + notes.map(function (n) {
           return '<div class="itdl-item"><div class="itdl-item-main"><div class="small">' + esc(fmtDate(n.created_at)) + '</div><div class="itdl-text">' + esc(n.content) + '</div></div>' +
             '<div class="itdl-actions"><button type="button" class="btn itdl-sm" data-act="note-edit" data-id="' + esc(n.id) + '">Изменить</button>' +
             '<button type="button" class="btn itdl-sm" data-act="note-delete" data-id="' + esc(n.id) + '">Удалить</button></div></div>';
-        }).join('') + '</div>' : '') + '</div>';
-      return html;
-    }
-
-    function scheduleBlock(e) {
-      if (!e.schedule || !e.schedule.length) {
-        return '<div class="small">Расписание не задано. Добавьте его в карточке ученика (вкладка «Ученики»), и даты уроков появятся здесь и в календаре.</div>';
-      }
-      let text = 'Расписание: ' + esc(scheduleText(e));
-      if (e.first_lesson_at) text += ' · первый урок ' + esc(fmtWhen(e.first_lesson_at));
-      if (e.last_lesson_at) text += ' · последний ' + esc(fmtWhen(e.last_lesson_at));
-      let html = '<div class="small">' + text + '</div>';
-      if (e.lessons_total && e.lessons_scheduled < e.lessons_total) {
-        html += '<div class="small">Даты назначены ' + e.lessons_scheduled + ' из ' + e.lessons_total + ' уроков.</div>';
-      }
+        }).join('') + '</div>' : '');
+      html += '<div class="card card-padding itdl-module">' +
+        fold('notes', 'Заметки' + (notes.length ? ' · ' + notes.length : '') + ' <span class="small">(видите только Вы)</span>', notesInner, true) + '</div>';
       return html;
     }
 
@@ -641,7 +702,13 @@
           const e = cache.enrollments.find(function (x) { return x.id === ds.id; });
           if (!e) return;
           if (ds.status === 'finished' && !(await ask('Завершить курс «' + e.course_title + '» у этого ученика? Его можно будет возобновить.', 'Завершение курса'))) return;
+          if (ds.status === 'paused' && !(await ask('Поставить ученика на паузу? Все его будущие занятия исчезнут из календаря. Когда возобновите, снова зададите расписание, и уроки встанут сами.', 'Пауза'))) return;
           await call('/enrollments/' + e.id, send('PATCH', { status: ds.status }));
+          if (ds.status === 'active' && e.status === 'paused') {
+            notify('Курс возобновлён. Задайте расписание в карточке ученика (вкладка «Ученики»), и уроки встанут в календарь.', 'success', 'Возобновлено');
+          } else if (ds.status === 'paused') {
+            notify('Будущие занятия убраны из календаря.', 'success', 'Пауза');
+          }
           return draw(true);
         }
         case 'enr-remove': {
@@ -737,7 +804,29 @@
         '#courses .itdl-tree-name{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;min-width:0}',
         '#courses .itdl-when{white-space:nowrap}',
         '#courses .itdl-link{border:0;background:none;padding:0;font:inherit;font-size:14px;color:var(--primary);cursor:pointer;text-align:left}',
-        '#courses .itdl-notes{margin-top:12px}'
+        '#courses .itdl-notes{margin-top:12px}',
+        '#courses .itdl-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:14px}',
+        '#courses .itdl-stat{padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:var(--surface-soft);min-width:0}',
+        '#courses .itdl-stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700}',
+        '#courses .itdl-stat-value{font-size:15px;font-weight:700;margin-top:3px;overflow-wrap:anywhere}',
+        '#courses .itdl-big{font-size:30px;font-weight:800;line-height:1}',
+        '#courses .itdl-squares{display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:8px;margin-top:16px}',
+        '#courses .itdl-sq{border:1px solid var(--border);border-radius:12px;padding:7px 4px;text-align:center;background:#eef0f4;color:#475467;cursor:pointer;font:inherit;display:grid;gap:1px;min-height:64px;align-content:center;transition:transform .12s}',
+        '#courses .itdl-sq:hover{transform:translateY(-1px)}',
+        '#courses .itdl-sq b{font-size:15px}',
+        '#courses .itdl-sq span{font-size:10px;opacity:.8}',
+        '#courses .itdl-sq.held{background:var(--success-bg);border-color:#a6e0bb;color:var(--success)}',
+        '#courses .itdl-sq.empty{background:transparent;border-style:dashed;color:var(--muted)}',
+        '#courses .itdl-sq.next{box-shadow:0 0 0 2px var(--primary)}',
+        '#courses .itdl-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px}',
+        '#courses .itdl-dot{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}',
+        '#courses .itdl-fold{margin-top:14px;border-top:1px solid var(--border);padding-top:10px}',
+        '#courses .itdl-fold.bare{margin-top:0;border-top:0;padding-top:0}',
+        '#courses .itdl-fold>summary{cursor:pointer;font-weight:700;font-size:14px;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:8px}',
+        '#courses .itdl-fold>summary::-webkit-details-marker{display:none}',
+        '#courses .itdl-fold>summary::after{content:"▾";color:var(--muted);transition:transform .15s}',
+        '#courses .itdl-fold[open]>summary::after{transform:rotate(180deg)}',
+        '#courses .itdl-banner{margin-top:12px;padding:10px 12px;border-radius:10px;background:#fff7e6;border:1px solid #f5d79a;font-size:13px;color:#7a4b00}'
       ].join('\n');
       document.head.appendChild(style);
     }
@@ -757,6 +846,10 @@
       if (!el || !root.contains(el) || el.disabled) return;
       Promise.resolve().then(function () { return onAction(el.dataset.act, el.dataset, el); }).catch(fail);
     });
+    root.addEventListener('toggle', function (event) {
+      const el = event.target;
+      if (el && el.dataset && el.dataset.fold) S.open[el.dataset.fold] = el.open;
+    }, true);
     root.addEventListener('change', function (event) {
       const el = event.target.closest('[data-change]');
       if (!el || !root.contains(el)) return;
