@@ -877,69 +877,9 @@ async function loadDashboard() {
             : `<div class="empty">Сегодня ничего нет</div>`;
 
 
-        const alerts =
-            active.filter(
-                student =>
-                    Number(
-                        student.balance || 0
-                    ) <
-                    Number(
-                        student.lesson_price || 0
-                    )
-            );
-
-
-        $("#dashboardAlerts")
-            .innerHTML =
-            alerts.length
-            ? alerts.map(
-                student => `
-
-                    <div class="calendar-item">
-
-                        <div>
-
-                            <b>
-                                ${esc(
-                                    student.full_name
-                                )}
-                            </b>
-
-                            <div class="small">
-
-                                Баланс
-                                ${money(
-                                    student.balance
-                                )}
-
-                                · занятие
-                                ${money(
-                                    student.lesson_price
-                                )}
-
-                            </div>
-
-                        </div>
-
-                        <span
-                            class="status-icon alert"
-                            title="Баланс меньше стоимости занятия"
-                        >
-                            !
-                        </span>
-
-                    </div>
-
-                `
-            ).join("")
-            :
-            `<div class="empty">
-                Всё в порядке
-             </div>`;
-
     } catch (e) {
 
-        $("#dashboardAlerts")
+        $("#dashboardSchedule")
             .innerHTML =
             `<div class="empty">
                 ${esc(e.message)}

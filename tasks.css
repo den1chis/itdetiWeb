@@ -1,0 +1,197 @@
+/* ITDETI TASKS — стили раздела «Задачи», блока на Главной и значков в календаре.
+   Все классы с префиксом itdt-, ничего существующего не переопределяют. */
+
+#tasks { --itdt-gap: 12px; }
+.itdt-root { display: grid; gap: 14px; min-width: 0; }
+
+/* ---------- панель управления ---------- */
+.itdt-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.itdt-seg { display: inline-flex; background: var(--surface-soft); border: 1px solid var(--border); border-radius: 11px; padding: 3px; }
+.itdt-seg button { border: 0; background: transparent; padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.itdt-seg button.active { background: var(--surface); color: var(--primary); box-shadow: 0 1px 4px rgba(20, 30, 60, .1); }
+.itdt-period { display: inline-flex; align-items: center; gap: 4px; }
+.itdt-icon-btn { width: 34px; height: 34px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); color: var(--text); font-size: 17px; line-height: 1; display: inline-grid; place-items: center; cursor: pointer; }
+.itdt-icon-btn:hover { background: var(--surface-soft); }
+.itdt-today-btn { height: 34px; padding: 0 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); font-size: 13px; cursor: pointer; }
+.itdt-period-title { font-weight: 800; font-size: 15px; margin-left: 6px; white-space: nowrap; }
+.itdt-spacer { flex: 1; }
+
+.itdt-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.itdt-chips::-webkit-scrollbar { display: none; }
+.itdt-chip { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 13px; cursor: pointer; color: var(--text); }
+.itdt-chip.active { border-color: var(--primary); background: #eef0ff; color: var(--primary); font-weight: 600; }
+.itdt-chip .itdt-dot { width: 9px; height: 9px; }
+.itdt-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--pc, #94a3b8); flex: 0 0 auto; }
+
+.itdt-quick { display: flex; gap: 8px; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: 13px; padding: 6px 6px 6px 14px; box-shadow: var(--shadow); }
+.itdt-quick input[type=text] { flex: 1; min-width: 0; border: 0; outline: 0; font-size: 14px; background: transparent; padding: 8px 0; color: var(--text); }
+.itdt-quick select, .itdt-quick input[type=date] { border: 1px solid var(--border); border-radius: 9px; background: var(--surface-soft); padding: 7px 8px; font-size: 13px; color: var(--text); max-width: 150px; }
+.itdt-quick .btn { white-space: nowrap; }
+
+/* ---------- карточка задачи ---------- */
+.itdt-card { position: relative; display: flex; align-items: flex-start; gap: 9px; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--pc, #cbd5e1); border-radius: 10px; padding: 9px 10px 9px 9px; cursor: pointer; transition: box-shadow .15s, transform .15s, opacity .15s; }
+.itdt-card:hover { box-shadow: 0 4px 14px rgba(20, 30, 60, .08); }
+.itdt-card.dragging { opacity: .45; }
+.itdt-card.overdue { background: #fffafa; }
+.itdt-card.past { opacity: .7; }
+.itdt-card.done { opacity: .62; }
+.itdt-card.done .itdt-title { text-decoration: line-through; color: var(--muted); }
+.itdt-check { flex: 0 0 auto; width: 20px; height: 20px; margin-top: 1px; border-radius: 50%; border: 2px solid var(--pc, #94a3b8); background: transparent; display: grid; place-items: center; padding: 0; cursor: pointer; color: transparent; transition: background .15s; }
+.itdt-check:hover { background: color-mix(in srgb, var(--pc, #94a3b8) 15%, transparent); color: var(--pc, #94a3b8); }
+.itdt-card.done .itdt-check, .itdt-row.done .itdt-check { background: var(--pc, #94a3b8); color: #fff; }
+.itdt-check svg { width: 11px; height: 11px; }
+.itdt-card-body { flex: 1; min-width: 0; }
+.itdt-title { font-size: 13.5px; line-height: 1.35; font-weight: 600; overflow-wrap: break-word; hyphens: auto; -webkit-hyphens: auto; }
+.itdt-meta { display: flex; flex-wrap: wrap; gap: 4px 9px; margin-top: 3px; font-size: 11.5px; color: var(--muted); }
+.itdt-meta span { display: inline-flex; align-items: center; gap: 4px; }
+.itdt-meta .itdt-late { color: var(--danger); font-weight: 600; }
+
+/* ---------- неделя ---------- */
+.itdt-overdue { background: var(--danger-bg); border: 1px solid #f6d2cf; border-radius: 13px; padding: 10px 12px; }
+.itdt-overdue-title { font-size: 13px; font-weight: 800; color: var(--danger); margin-bottom: 8px; }
+.itdt-overdue-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+
+.itdt-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.itdt-week .itdt-rep-text { display: none; }
+.itdt-week .itdt-card { padding: 8px 8px 8px 8px; gap: 7px; }
+.itdt-week .itdt-col-list { padding: 7px; }
+.itdt-week .itdt-add-inline { margin: 0 7px 7px; }
+.itdt-undated { background: var(--surface); border: 1px solid var(--border); border-radius: 13px; padding: 10px 12px; transition: border-color .15s, background .15s; }
+.itdt-undated.drop { border-color: var(--primary); background: #f3f2ff; }
+.itdt-undated-head { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 800; margin-bottom: 8px; }
+.itdt-undated-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.itdt-col { background: var(--surface); border: 1px solid var(--border); border-radius: 13px; display: flex; flex-direction: column; min-height: 260px; min-width: 0; transition: border-color .15s, background .15s; }
+.itdt-col.today { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary) inset; }
+.itdt-col.undated { background: var(--surface-soft); }
+.itdt-col.drop { border-color: var(--primary); background: #f3f2ff; }
+.itdt-col-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; padding: 10px 11px 8px; border-bottom: 1px solid var(--border); }
+.itdt-col-day { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+.itdt-col-num { font-size: 18px; font-weight: 800; margin-left: 4px; }
+.itdt-col.today .itdt-col-num { color: var(--primary); }
+.itdt-col-count { font-size: 11.5px; color: var(--muted); }
+.itdt-col-list { display: grid; gap: 7px; padding: 9px; align-content: start; flex: 1; }
+.itdt-add-inline { margin: 0 9px 9px; border: 1px dashed var(--border); border-radius: 9px; background: transparent; color: var(--muted); padding: 7px; font-size: 12.5px; cursor: pointer; text-align: left; }
+.itdt-add-inline:hover { color: var(--primary); border-color: var(--primary); }
+.itdt-empty-col { font-size: 12px; color: #aab1bf; text-align: center; padding: 14px 4px; }
+
+/* ---------- месяц ---------- */
+.itdt-month { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.itdt-month-head, .itdt-month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.itdt-month-head div { padding: 9px; font-size: 12px; font-weight: 700; color: var(--muted); text-align: center; border-bottom: 1px solid var(--border); }
+.itdt-mcell { min-height: 112px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 6px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; min-width: 0; transition: background .12s; }
+.itdt-mcell:nth-child(7n) { border-right: 0; }
+.itdt-mcell:hover { background: var(--surface-soft); }
+.itdt-mcell.other { background: #fafbfc; }
+.itdt-mcell.other .itdt-mnum { color: #b8bfcc; }
+.itdt-mcell.selected { background: #f3f2ff; }
+.itdt-mcell.drop { background: #ecebff; }
+.itdt-mnum { font-size: 13px; font-weight: 700; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; }
+.itdt-mcell.today .itdt-mnum { background: var(--primary); color: #fff; }
+.itdt-mchip { display: flex; align-items: center; gap: 5px; font-size: 11.5px; line-height: 1.3; padding: 2px 6px; border-radius: 6px; background: color-mix(in srgb, var(--pc, #94a3b8) 13%, #fff); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.itdt-mchip > span:last-child { overflow: hidden; text-overflow: ellipsis; }
+.itdt-mchip.done { text-decoration: line-through; color: var(--muted); }
+.itdt-mmore { font-size: 11px; color: var(--muted); padding-left: 4px; }
+.itdt-mdots { display: none; gap: 3px; flex-wrap: wrap; justify-content: center; }
+.itdt-mdots .itdt-dot { width: 6px; height: 6px; }
+.itdt-day-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px; }
+.itdt-day-panel-title { font-weight: 800; font-size: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+
+/* ---------- проекты (список) ---------- */
+.itdt-projects { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; align-items: start; }
+.itdt-pblock { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.itdt-pblock-head { display: flex; align-items: center; gap: 9px; padding: 12px 14px; border-bottom: 1px solid var(--border); border-top: 4px solid var(--pc, #94a3b8); }
+.itdt-pblock-name { font-weight: 800; font-size: 15px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.itdt-pblock-count { font-size: 12px; color: var(--muted); }
+.itdt-group-label { font-size: 11.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; padding: 10px 14px 4px; }
+.itdt-group-label.late { color: var(--danger); }
+.itdt-row { display: flex; align-items: center; gap: 10px; padding: 8px 14px; cursor: pointer; }
+.itdt-row:hover { background: var(--surface-soft); }
+.itdt-row .itdt-title { font-weight: 500; flex: 1; min-width: 0; }
+.itdt-row.done .itdt-title { text-decoration: line-through; color: var(--muted); }
+.itdt-row-date { font-size: 12px; color: var(--muted); white-space: nowrap; display: inline-flex; gap: 5px; align-items: center; }
+.itdt-row-date.late { color: var(--danger); font-weight: 600; }
+.itdt-pblock .itdt-add-inline { margin: 6px 14px 12px; width: calc(100% - 28px); }
+.itdt-pblock-empty { padding: 12px 14px; font-size: 13px; color: #aab1bf; }
+
+.itdt-state { padding: 28px 16px; text-align: center; color: var(--muted); font-size: 14px; background: var(--surface); border: 1px dashed var(--border); border-radius: 14px; }
+.itdt-state b { color: var(--text); display: block; margin-bottom: 6px; }
+
+/* ---------- редактор (модальное окно) ---------- */
+.itdt-form { display: grid; gap: 12px; }
+.itdt-form label { display: block; font-size: 12.5px; font-weight: 600; color: var(--muted); margin-bottom: 5px; }
+.itdt-form input[type=text], .itdt-form input[type=date], .itdt-form input[type=number], .itdt-form select, .itdt-form textarea { width: 100%; border: 1px solid var(--border); border-radius: 10px; padding: 10px 11px; font-size: 14px; background: var(--surface); color: var(--text); font-family: inherit; }
+.itdt-form textarea { min-height: 70px; resize: vertical; }
+.itdt-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.itdt-quickdates { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 7px; }
+.itdt-quickdates button, .itdt-wd button { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 6px 10px; font-size: 12.5px; cursor: pointer; color: var(--text); }
+.itdt-quickdates button.active, .itdt-wd button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.itdt-wd { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.itdt-wd button { padding: 8px 0; }
+.itdt-repeat-box { display: grid; gap: 10px; padding: 11px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface-soft); }
+.itdt-interval { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.itdt-interval input { width: 74px !important; }
+.itdt-hint { font-size: 12px; color: var(--muted); }
+.itdt-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 4px; }
+.itdt-actions .itdt-del { margin-right: auto; color: var(--danger); }
+.itdt-btn-danger { background: var(--danger) !important; border-color: var(--danger) !important; color: #fff !important; }
+.itdt-plist { display: grid; gap: 8px; }
+.itdt-prow { display: flex; gap: 8px; align-items: center; }
+.itdt-prow input[type=color] { width: 40px; height: 38px; border: 1px solid var(--border); border-radius: 9px; padding: 3px; background: var(--surface); flex: 0 0 auto; cursor: pointer; }
+.itdt-prow input[type=text] { flex: 1; min-width: 0; }
+
+/* ---------- Главная ---------- */
+.itdt-dash-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.itdt-dash-head .section-title { margin-bottom: 0 !important; }
+.itdt-link { border: 0; background: transparent; color: var(--primary); font-weight: 600; font-size: 13px; cursor: pointer; padding: 4px 0; white-space: nowrap; }
+.itdt-dash { display: grid; gap: 7px; margin-top: 12px; }
+.itdt-dash .itdt-quick { box-shadow: none; padding: 4px 4px 4px 12px; margin-top: 4px; }
+.itdt-dash-late { font-size: 11.5px; font-weight: 700; color: var(--danger); text-transform: uppercase; letter-spacing: .04em; margin-top: 4px; }
+
+/* ---------- календарь «Расписание»: значок задач ---------- */
+.itdt-cal-badge { display: inline-flex; align-items: center; gap: 2px; margin-left: 4px; padding: 1px 6px; border-radius: 999px; background: #eef0ff; color: var(--primary); font-size: 10.5px; font-weight: 700; line-height: 1.5; vertical-align: middle; cursor: pointer; }
+.itdt-cal-badge:hover { background: var(--primary); color: #fff; }
+
+/* ---------- телефон и планшет ---------- */
+@media (max-width: 1100px) and (min-width: 761px) {
+    .itdt-week { grid-template-columns: repeat(7, minmax(140px, 1fr)); overflow-x: auto; padding-bottom: 4px; }
+}
+@media (max-width: 760px) {
+    .itdt-toolbar { gap: 8px; }
+    .itdt-seg { width: 100%; }
+    .itdt-seg button { flex: 1; padding: 8px 6px; }
+    .itdt-period { width: 100%; }
+    .itdt-period-title { flex: 1; text-align: center; font-size: 14px; margin: 0; }
+    .itdt-toolbar .itdt-new { display: none; }
+    .itdt-quick { flex-wrap: wrap; padding: 8px; gap: 6px; }
+    .itdt-quick input[type=text] { flex: 1 1 100%; padding: 6px 4px; font-size: 15px; }
+    .itdt-quick select, .itdt-quick input[type=date] { flex: 1 1 0; max-width: none; min-width: 0; }
+
+    .itdt-week { display: grid; grid-template-columns: 1fr; gap: 10px; overflow: visible; }
+    .itdt-week .itdt-rep-text { display: inline; }
+    .itdt-week .itdt-card { padding: 11px 10px 11px 9px; gap: 9px; }
+    .itdt-undated-list { grid-template-columns: 1fr; }
+    .itdt-col { min-height: 0; }
+    .itdt-col.empty-day .itdt-col-list { display: none; }
+    .itdt-col.empty-day .itdt-col-head { border-bottom: 0; }
+    .itdt-col-head { padding: 10px 12px; }
+    .itdt-overdue-list { grid-template-columns: 1fr; }
+
+    .itdt-mcell { min-height: 54px; padding: 4px 2px; align-items: center; gap: 3px; }
+    .itdt-mchip, .itdt-mmore { display: none; }
+    .itdt-mdots { display: flex; }
+    .itdt-mnum { width: 24px; height: 24px; font-size: 12.5px; }
+    .itdt-month-head div { padding: 7px 0; font-size: 11px; }
+
+    .itdt-projects { grid-template-columns: 1fr; }
+    .itdt-row { padding: 10px 14px; }
+    .itdt-card { padding: 11px 10px 11px 9px; }
+    .itdt-check { width: 22px; height: 22px; }
+    .itdt-row2 { grid-template-columns: 1fr; }
+}
+
+/* атрибут hidden всегда скрывает (классы с display иначе его перебивают) */
+.itdt-form [hidden], .itdt-root [hidden], .itdt-dash [hidden] { display: none !important; }
+/* Главная: быстрое добавление всегда в одну строку */
+.itdt-dash .itdt-quick { flex-wrap: nowrap !important; }
+.itdt-dash .itdt-quick input[type=text] { flex: 1 1 auto !important; }
+.itdt-dash .itdt-quick .btn { flex: 0 0 auto; min-width: 42px; }
