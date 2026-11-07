@@ -1,0 +1,5072 @@
+async function cleanupStudentBeforeDelete(studentId){
+    const lessons=await api(`/lessons?student_id=${encodeURIComponent(studentId)}`);
+    for(const lesson of lessons||[]){
+        try{await api(`/lessons/${lesson.id}`,{method:'DELETE'});}catch(e){if(!/not found/i.test(String(e.message||'')))throw e;}
+    }
+    const slots=await api(`/students/${studentId}/schedule?include_inactive=true`);
+    for(const slot of slots||[]){
+        try{await api(`/students/${studentId}/schedule/${slot.id}`,{method:'DELETE'});}catch(e){if(!/not found/i.test(String(e.message||'')))throw e;}
+    }
+}
+
+async function createOrReactivateStudentSchedule(path, options){
+    try{return await api(path,options)}catch(e){
+        if(!/already exists|уже существует/i.test(String(e.message||''))) throw e;
+        const m=path.match(/\/students\/([^/]+)\/schedule$/); if(!m) throw e;
+        const studentId=m[1]; const p=JSON.parse(options.body||'{}');
+        const slots=await api(`/students/${studentId}/schedule?include_inactive=true`);
+        const existing=(slots||[]).find(s=>Number(s.day_of_week)===Number(p.day_of_week) && String(s.start_time).slice(0,5)===String(p.start_time).slice(0,5) && String(s.valid_from)===String(p.valid_from));
+        if(!existing) throw e;
+        return await api(`/students/${studentId}/schedule/${existing.id}`,{method:'PATCH',body:JSON.stringify({...p,is_active:true,valid_until:null})});
+    }
+}
+
+
+/* ITDETI_WEBVIEW_CONFIRM_V1 */
+(function () {
+    if (window.appConfirm) return;
+
+    const style = document.createElement("style");
+    style.textContent = `
+        .itd-confirm-overlay {
+            position:fixed; inset:0; z-index:99999;
+            display:flex; align-items:center; justify-content:center;
+            padding:18px; background:rgba(15,23,42,.48);
+            backdrop-filter:blur(3px);
+        }
+        .itd-confirm-dialog {
+            width:min(420px, 100%); background:#fff; color:#172033;
+            border-radius:16px; box-shadow:0 20px 60px rgba(15,23,42,.25);
+            padding:20px;
+        }
+        .itd-confirm-title { font-size:18px; font-weight:800; margin-bottom:8px; }
+        .itd-confirm-message { color:#697386; font-size:14px; line-height:1.45; white-space:pre-wrap; }
+        .itd-confirm-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
+        .itd-confirm-actions button {
+            border:1px solid #e6e8ee; background:#fff; color:#172033;
+            border-radius:9px; padding:10px 14px; font-weight:700;
+        }
+        .itd-confirm-actions .danger { background:#b42318; border-color:#b42318; color:#fff; }
+        @media(max-width:600px) {
+            .itd-confirm-overlay { align-items:flex-end; padding:10px; }
+            .itd-confirm-dialog { border-radius:18px; padding:18px; margin-bottom:env(safe-area-inset-bottom); }
+            .itd-confirm-actions button { min-height:44px; flex:1; }
+        }
+    `;
+    document.head.appendChild(style);
+
+    window.appConfirm = function (message, title = "Подтверждение", danger = true) {
+        return new Promise(resolve => {
+            const old = document.querySelector(".itd-confirm-overlay");
+            if (old) old.remove();
+            const overlay = document.createElement("div");
+            overlay.className = "itd-confirm-overlay";
+            overlay.innerHTML = `
+                <div class="itd-confirm-dialog" role="dialog" aria-modal="true">
+                    <div class="itd-confirm-title"></div>
+                    <div class="itd-confirm-message"></div>
+                    <div class="itd-confirm-actions">
+                        <button type="button" class="cancel">Отмена</button>
+                        <button type="button" class="${danger ? "danger" : ""}">Подтвердить</button>
+                    </div>
+                </div>`;
+            overlay.querySelector(".itd-confirm-title").textContent = title;
+            overlay.querySelector(".itd-confirm-message").textContent = message;
+            document.body.appendChild(overlay);
+
+            let done = false;
+            const finish = value => {
+                if (done) return;
+                done = true;
+                overlay.remove();
+                resolve(value);
+            };
+            overlay.querySelector(".cancel").onclick = () => finish(false);
+            overlay.querySelector(".danger").onclick = () => finish(true);
+            if (!danger) overlay.querySelector(".itd-confirm-actions button:last-child").onclick = () => finish(true);
+            overlay.addEventListener("click", e => { if (e.target === overlay) finish(false); });
+            const onKey = e => {
+                if (e.key === "Escape") finish(false);
+                if (e.key === "Enter") finish(true);
+            };
+            document.addEventListener("keydown", onKey, {once:true});
+            setTimeout(() => overlay.querySelector(".cancel").focus(), 0);
+        });
+    };
+})();
+
+
+
+/* =========================================================
+   CONFIG
+========================================================= */
+
+const API =
+    "https://itdeti.onrender.com";
+
+const ACCESS =
+    "itdeti_access_token";
+
+const REFRESH =
+    "itdeti_refresh_token";
+
+
+const state = {
+
+    page:
+        "dashboard",
+
+    students:
+        [],
+
+    calendar: {
+
+        view:
+            "month",
+
+        date:
+            new Date(),
+
+        items:
+            []
+
+    }
+
+};
+
+
+const DAYS = [
+    "Понедельник",
+    "Вторник",
+    "Среда",
+    "Четверг",
+    "Пятница",
+    "Суббота",
+    "Воскресенье"
+];
+
+
+const DAYS_SHORT = [
+    "Пн",
+    "Вт",
+    "Ср",
+    "Чт",
+    "Пт",
+    "Сб",
+    "Вс"
+];
+
+
+function $(selector) {
+
+    return document.querySelector(
+        selector
+    );
+
+}
+
+function esc(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+
+function money(value) {
+
+    return (
+        Number(value || 0)
+            .toLocaleString(
+                "ru-RU"
+            )
+        + " ₸"
+    );
+
+}
+
+
+function escapeHtml(value) {
+
+    return String(
+        value ?? ""
+    )
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+}
+
+
+function pad(value) {
+
+    return String(value)
+        .padStart(2, "0");
+
+}
+
+
+function dateKey(date) {
+
+    return [
+        date.getFullYear(),
+        pad(date.getMonth() + 1),
+        pad(date.getDate())
+    ].join("-");
+
+}
+
+
+function formatDateTime(value) {
+
+    return new Date(value)
+        .toLocaleString(
+            "ru-RU",
+            {
+                dateStyle:
+                    "short",
+                timeStyle:
+                    "short"
+            }
+        );
+
+}
+
+
+function formatDate(value) {
+
+    return new Date(value)
+        .toLocaleDateString(
+            "ru-RU"
+        );
+
+}
+
+
+function randomId() {
+
+    return crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random()}`;
+
+}
+
+
+/* =========================================================
+   AUTH / API
+========================================================= */
+
+async function refreshAccess() {
+
+    const token =
+        localStorage.getItem(
+            REFRESH
+        );
+
+    if (!token)
+        return false;
+
+
+    const response =
+        await fetch(
+            `${API}/auth/refresh`,
+            {
+                method:
+                    "POST",
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+                body:
+                    JSON.stringify({
+                        refresh_token:
+                            token
+                    })
+            }
+        );
+
+
+    if (!response.ok)
+        return false;
+
+
+    const data =
+        await response.json();
+
+
+    localStorage.setItem(
+        ACCESS,
+        data.access_token
+    );
+
+
+    if (data.refresh_token) {
+
+        localStorage.setItem(
+            REFRESH,
+            data.refresh_token
+        );
+
+    }
+
+
+    return true;
+
+}
+
+
+async function api(
+    path,
+    options = {},
+    retry = true
+) {
+
+    const token =
+        localStorage.getItem(
+            ACCESS
+        );
+
+
+    if (!token) {
+
+        location.href =
+            "index.html";
+
+        throw new Error(
+            "Не авторизован"
+        );
+
+    }
+
+
+    const headers =
+        new Headers(
+            options.headers || {}
+        );
+
+
+    headers.set(
+        "Authorization",
+        `Bearer ${token}`
+    );
+
+
+    if (
+        options.body &&
+        !headers.has(
+            "Content-Type"
+        )
+    ) {
+
+        headers.set(
+            "Content-Type",
+            "application/json"
+        );
+
+    }
+
+
+    let response;
+
+    try {
+        response = await fetch(API + path, { ...options, headers });
+    } catch (error) {
+        throw new Error("Не удалось связаться с сервером. Проверьте интернет-соединение и доступность сервера.");
+    }
+
+
+    if (
+        response.status === 401 &&
+        retry
+    ) {
+
+        if (
+            await refreshAccess()
+        ) {
+
+            return api(
+                path,
+                options,
+                false
+            );
+
+        }
+
+    }
+
+
+    if (
+        response.status === 401
+    ) {
+
+        localStorage.removeItem(
+            ACCESS
+        );
+
+        localStorage.removeItem(
+            REFRESH
+        );
+
+        location.href =
+            "index.html";
+
+        throw new Error(
+            "Сессия истекла"
+        );
+
+    }
+
+
+    const data =
+        await response
+            .json()
+            .catch(
+                () => ({})
+            );
+
+
+            if (!response.ok) {
+
+                let message;
+
+                if (typeof data.detail === "string") {
+
+                    message = data.detail;
+
+                } else if (Array.isArray(data.detail)) {
+
+                    message = data.detail
+                        .map(error => {
+                            const location =
+                                Array.isArray(error.loc)
+                                    ? error.loc.join(".")
+                                    : "";
+
+                            return `${location}: ${error.msg || "Ошибка"}`;
+                        })
+                        .join("\n");
+
+                } else if (data.detail) {
+
+                    message =
+                        JSON.stringify(
+                            data.detail,
+                            null,
+                            2
+                        );
+
+                } else {
+
+                    message =
+                        `Ошибка HTTP ${response.status}`;
+
+                }
+
+                throw new Error(message);
+                }
+
+
+    return data;
+
+}
+
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+function openModal(
+    title,
+    html
+) {
+
+    $("#modalTitle")
+        .textContent =
+        title;
+
+    $("#modalBody")
+        .innerHTML =
+        html;
+
+    $("#modal")
+        .classList.add(
+            "open"
+        );
+
+}
+
+
+function closeModal() {
+
+    $("#modal")
+        .classList.remove(
+            "open"
+        );
+
+    $("#modalBody")
+        .innerHTML = "";
+
+}
+
+
+$("#modalClose").onclick =
+    closeModal;
+
+
+$("#modal").onclick =
+    event => {
+
+        if (
+            event.target ===
+            $("#modal")
+        ) {
+
+            closeModal();
+
+        }
+
+    };
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+const PAGE_INFO = {
+
+    dashboard: [
+        "Главная",
+        "Сводка по школе"
+    ],
+
+    students: [
+        "Ученики",
+        "Ученики, родители и баланс"
+    ],
+
+    schedule: [
+        "Расписание",
+        "Занятия и события"
+    ],
+
+    finance: [
+        "Финансы",
+        "Баланс, доходы, расходы и прогноз"
+    ],
+
+    notifications: [
+        "Уведомления",
+        "События с телефона"
+    ]
+
+};
+
+
+function switchPage(
+    page
+) {
+
+    state.page =
+        page;
+
+
+    document
+        .querySelectorAll(
+            ".view"
+        )
+        .forEach(
+            element =>
+                element.classList.remove(
+                    "active"
+                )
+        );
+
+
+    document
+        .getElementById(
+            page
+        )
+        .classList.add(
+            "active"
+        );
+
+
+    document
+        .querySelectorAll(
+            ".nav button"
+        )
+        .forEach(
+            button =>
+                button.classList.toggle(
+                    "active",
+                    button.dataset.page ===
+                    page
+                )
+        );
+
+
+    $("#pageTitle")
+        .textContent =
+        PAGE_INFO[page][0];
+
+
+    $("#pageSubtitle")
+        .textContent =
+        PAGE_INFO[page][1];
+
+
+    loadPage(
+        page
+    );
+
+}
+
+
+async function loadPage(
+    page
+) {
+
+    if (
+        page ===
+        "dashboard"
+    )
+        await loadDashboard();
+
+
+    if (
+        page ===
+        "students"
+    )
+        await loadStudents();
+
+
+    if (
+        page ===
+        "schedule"
+    )
+        await loadCalendar();
+
+
+    if (
+        page ===
+        "finance"
+    )
+        await loadFinance();
+
+
+    if (
+        page ===
+        "notifications"
+    )
+        await loadNotifications();
+
+}
+
+
+document
+    .querySelectorAll(
+        ".nav button"
+    )
+    .forEach(
+        button => {
+
+            button.onclick =
+                () =>
+                    switchPage(
+                        button.dataset.page
+                    );
+
+        }
+    );
+
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+$("#logout").onclick =
+    async () => {
+
+        try {
+
+            const token =
+                localStorage.getItem(
+                    REFRESH
+                );
+
+            if (token) {
+
+                await api(
+                    "/auth/logout",
+                    {
+                        method:
+                            "POST",
+                        body:
+                            JSON.stringify({
+                                refresh_token:
+                                    token
+                            })
+                    }
+                );
+
+            }
+
+        } catch (_) {}
+
+        localStorage.removeItem(
+            ACCESS
+        );
+
+        localStorage.removeItem(
+            REFRESH
+        );
+
+        location.href =
+            "index.html";
+
+    };
+
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
+
+async function loadDashboard() {
+
+    try {
+
+        const [
+            students,
+            schedule,
+            finance
+        ] =
+            await Promise.all([
+
+                api(
+                    "/students"
+                ),
+
+                api(
+                    "/schedule/today"
+                ),
+
+                api(
+                    "/finance/summary"
+                )
+
+            ]);
+
+
+        state.students =
+            students;
+
+
+        const active =
+            students.filter(
+                x => x.is_active
+            );
+
+
+        const balances =
+            active.reduce(
+                (
+                    result,
+                    student
+                ) =>
+                    result +
+                    Number(
+                        student.balance || 0
+                    ),
+                0
+            );
+
+
+        const lessonCount =
+            schedule.filter(
+                x =>
+                    x.item_type ===
+                    "lesson"
+            ).length;
+
+
+        $("#dashboardStats")
+            .innerHTML = `
+
+                <div class="card stat">
+
+                    <div class="stat-label">
+                        Ученики
+                    </div>
+
+                    <div class="stat-value">
+                        ${active.length}
+                    </div>
+
+                </div>
+
+
+                <div class="card stat">
+
+                    <div class="stat-label">
+                        Занятий сегодня
+                    </div>
+
+                    <div class="stat-value">
+                        ${lessonCount}
+                    </div>
+
+                </div>
+
+
+                <div class="card stat">
+
+                    <div class="stat-label">
+                        Балансы учеников
+                    </div>
+
+                    <div class="stat-value">
+                        ${money(
+                            balances
+                        )}
+                    </div>
+
+                </div>
+
+
+                <div class="card stat">
+
+                    <div class="stat-label">
+                        Доход месяца
+                    </div>
+
+                    <div class="stat-value">
+                        ${money(
+                            finance
+                                .income_from_students
+                        )}
+                    </div>
+
+                </div>
+
+            `;
+
+
+        $("#dashboardSchedule")
+            .innerHTML =
+            schedule.length
+            ? schedule.map(
+                item => `
+                    <div
+                        class="calendar-item dashboard-calendar-item"
+                        style="--item-color:${calendarColor(item)}"
+                        onclick="openCalendarItem('${item.item_id}','${item.item_type}')"
+                    >
+                        <div>
+                            <b>${esc(item.title)}</b>
+                            <div class="small">
+                                ${formatDateTime(item.start_time)}
+                                ${item.student_name ? ` · ${esc(item.student_name)}` : ""}
+                            </div>
+                        </div>
+                    </div>`
+            ).join("")
+            : `<div class="empty">Сегодня ничего нет</div>`;
+
+
+        const alerts =
+            active.filter(
+                student =>
+                    Number(
+                        student.balance || 0
+                    ) <
+                    Number(
+                        student.lesson_price || 0
+                    )
+            );
+
+
+        $("#dashboardAlerts")
+            .innerHTML =
+            alerts.length
+            ? alerts.map(
+                student => `
+
+                    <div class="calendar-item">
+
+                        <div>
+
+                            <b>
+                                ${esc(
+                                    student.full_name
+                                )}
+                            </b>
+
+                            <div class="small">
+
+                                Баланс
+                                ${money(
+                                    student.balance
+                                )}
+
+                                · занятие
+                                ${money(
+                                    student.lesson_price
+                                )}
+
+                            </div>
+
+                        </div>
+
+                        <span
+                            class="status-icon alert"
+                            title="Баланс меньше стоимости занятия"
+                        >
+                            !
+                        </span>
+
+                    </div>
+
+                `
+            ).join("")
+            :
+            `<div class="empty">
+                Всё в порядке
+             </div>`;
+
+    } catch (e) {
+
+        $("#dashboardAlerts")
+            .innerHTML =
+            `<div class="empty">
+                ${esc(e.message)}
+             </div>`;
+
+    }
+
+}
+
+
+/* =========================================================
+   STUDENTS
+========================================================= */
+
+async function loadStudents() {
+
+    try {
+
+        state.students =
+            await api(
+                "/students"
+            );
+
+
+        renderStudents();
+
+    } catch (e) {
+
+        $("#studentsTable")
+            .innerHTML =
+            `<tr>
+                <td
+                    colspan="5"
+                    class="empty"
+                >
+                    ${esc(e.message)}
+                </td>
+             </tr>`;
+
+    }
+
+}
+
+
+function renderStudents() {
+
+    const query =
+        $("#studentSearch")
+            .value
+            .trim()
+            .toLowerCase();
+
+
+    const rows =
+        state.students.filter(
+            student =>
+                !query ||
+                student.full_name
+                    .toLowerCase()
+                    .includes(query)
+        );
+
+
+    $("#studentsTable")
+        .innerHTML =
+        rows.length
+        ? rows.map(
+            student => {
+
+                const price =
+                    Number(
+                        student.lesson_price || 0
+                    );
+
+                const balance =
+                    Number(
+                        student.balance || 0
+                    );
+
+                const remaining =
+                    price
+                    ? Math.floor(
+                        Math.max(
+                            balance,
+                            0
+                        ) / price
+                    )
+                    : 0;
+
+
+                return `
+
+                   <tr
+                        class="clickable"
+                        data-student="${student.id}"
+                    >
+
+                        <td>
+
+                            <b>
+                                ${esc(
+                                    student.full_name
+                                )}
+                            </b>
+
+                            ${
+                                student.parents?.length
+                                ? `
+                                    <div class="small">
+                                        ${esc(
+                                            student.parents[0]
+                                                .full_name
+                                        )}
+                                    </div>
+                                  `
+                                : ""
+                            }
+
+                        </td>
+
+
+                        <td>
+                            ${esc(
+                                student.course ||
+                                "Не выбран"
+                            )}
+                        </td>
+
+
+                        <td>
+                            ${money(price)}
+                        </td>
+
+
+                        <td>
+                            ${money(balance)}
+                        </td>
+
+
+                        <td>
+                            ${remaining}
+                        </td>
+
+                    </tr>
+
+                `;
+
+            }
+        ).join("")
+        :
+        `<tr>
+            <td
+                colspan="5"
+                class="empty"
+            >
+                Учеников нет
+            </td>
+         </tr>`;
+
+
+    document
+        .querySelectorAll(
+            "[data-student]"
+        )
+        .forEach(
+            row => {
+
+                row.onclick = () => {
+                    const studentId =
+                        String(row.dataset.student || "").trim();
+
+                    if (!studentId) {
+                        console.error("Не найден ID ученика", row);
+                        return;
+                    }
+
+                    openStudentEditor(studentId);
+                };
+
+            }
+        );
+
+}
+
+
+$("#studentSearch").oninput =
+    renderStudents;
+
+
+/* =========================================================
+   CREATE STUDENT
+========================================================= */
+
+$("#newStudent").onclick =
+    () => {
+
+        openStudentEditor(
+            null
+        );
+
+    };
+
+
+function courseOptions(
+    courses,
+    selectedId = ""
+) {
+
+    const list = Array.isArray(courses) ? courses : [];
+
+    return [
+        `<option value="">Курс не выбран</option>`,
+        ...list.map(
+            course => `
+                <option
+                    value="${esc(course.id)}"
+                    ${course.id === selectedId ? "selected" : ""}
+                >
+                    ${esc(course.title)}
+                </option>
+            `
+        )
+    ].join("");
+
+}
+
+
+async function openStudentEditor(
+    studentId
+) {
+
+    const isCreateMode =
+        studentId === null ||
+        studentId === undefined ||
+        String(studentId).trim() === "";
+
+    if (!isCreateMode) {
+        studentId =
+            String(studentId).trim();
+    }
+
+    let student =
+        null;
+
+    let slots =
+        [];
+
+    if (studentId) {
+
+        [
+            student,
+            slots
+        ] =
+            await Promise.all([
+
+                api(
+                    `/students/${studentId}`
+                ),
+
+                api(
+                    `/students/${studentId}/schedule`
+                )
+
+            ]);
+
+    }
+
+
+    const parent =
+        student &&
+        student.parents &&
+        student.parents.length
+        ? student.parents[0]
+        : null;
+
+
+    // Курсы берутся из каталога LMS; назначение хранится в LMS, а не в свободной строке.
+    let lmsCourses = [];
+    let lmsEnrollment = null;
+    let lmsFailed = false;
+
+    try {
+
+        const catalog =
+            await api("/lms/courses");
+
+        if (studentId) {
+
+            const enrollments =
+                await api(`/lms/students/${studentId}/enrollments`);
+
+            lmsEnrollment =
+                enrollments[0] || null;
+
+        }
+
+        lmsCourses =
+            catalog.filter(
+                course =>
+                    !course.is_archived ||
+                    (lmsEnrollment && lmsEnrollment.course_id === course.id)
+            );
+
+    } catch (error) {
+
+        lmsFailed = true;
+
+    }
+
+
+    openModal(
+
+        student
+        ? `Карточка ученика`
+        : `Новый ученик`,
+
+        `
+
+        <form
+            id="studentEditor"
+            class="form"
+        >
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label>
+                        Имя ученика
+                    </label>
+
+                    <input
+                        id="studentName"
+                        value="${
+                            esc(
+                                student?.full_name ||
+                                ""
+                            )
+                        }"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Дата рождения
+                    </label>
+
+                    <input
+                        id="studentBirth"
+                        type="date"
+                        value="${
+                            student?.birth_date ||
+                            ""
+                        }"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label>
+                        Курс
+                    </label>
+
+                    <select
+                        id="studentCourse"
+                        ${lmsFailed ? "disabled" : ""}
+                    >
+
+                        ${
+                            lmsFailed
+                            ? `<option value="">Каталог курсов недоступен</option>`
+                            : courseOptions(
+                                lmsCourses,
+                                lmsEnrollment?.course_id ||
+                                ""
+                            )
+                        }
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Стоимость занятия
+                    </label>
+
+                    <input
+                        id="studentPrice"
+                        type="number"
+                        min="1"
+                        step="0.01"
+                        value="${
+                            student?.lesson_price ||
+                            ""
+                        }"
+                        required
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label>
+                        Баланс
+                    </label>
+
+                    <input
+                        id="studentBalance"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value="${
+                            student?.balance ||
+                            0
+                        }"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Примечание
+                    </label>
+
+                    <input
+                        id="studentNotes"
+                        value="${
+                            esc(
+                                student?.notes ||
+                                ""
+                            )
+                        }"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div
+                class="section-title"
+                style="margin-top:10px"
+            >
+                Родитель
+            </div>
+
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label>
+                        Имя родителя
+                    </label>
+
+                    <input
+                        id="parentName"
+                        value="${
+                            esc(
+                                parent?.full_name ||
+                                ""
+                            )
+                        }"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Телефон
+                    </label>
+
+                    <input
+                        id="parentPhone"
+                        value="${
+                            esc(
+                                parent?.phone ||
+                                ""
+                            )
+                        }"
+                        placeholder="+7..."
+                    >
+
+                </div>
+
+            </div>
+
+
+            ${
+                student
+                ? `
+
+                    <div
+                        class="section-title"
+                    >
+                        Расписание ученика
+                    </div>
+
+                    <div
+                        id="studentSlots"
+                    >
+
+                        ${
+                            slots.length
+                            ? slots.map(
+                                slot =>
+                                    renderStudentSlot(
+                                        slot
+                                    )
+                              ).join("")
+                            :
+                            `<div class="empty">
+                                Расписание не задано
+                             </div>`
+                        }
+
+                    </div>
+
+                    <button
+                        type="button"
+                        class="btn"
+                        id="addStudentSlot"
+                    >
+                        + Добавить день
+                    </button>
+
+                  `
+                : ""
+            }
+
+
+            <div class="form-actions">
+
+                ${
+                    student
+                    ? `
+                        <button
+                            type="button"
+                            class="btn"
+                            id="deleteStudent"
+                            style="
+                                margin-right:auto;
+                                color:#b42318"
+                        >
+                            Удалить ученика
+                        </button>
+                      `
+                    : ""
+                }
+
+
+                <button
+                    type="button"
+                    class="btn"
+                    id="saveStudent"
+                >
+                    Сохранить
+                </button>
+
+            </div>
+
+        </form>
+
+        `
+
+    );
+
+
+    $("#studentEditor").onsubmit =
+        event => {
+
+            event.preventDefault();
+
+        };
+
+
+    $("#saveStudent").onclick =
+        async () => {
+
+            const button =
+                $("#saveStudent");
+
+            button.disabled =
+                true;
+
+            button.textContent =
+                "Сохраняем...";
+
+
+            try {
+
+                let id =
+                    studentId;
+
+
+                const payload = {
+
+                    full_name:
+                        $("#studentName")
+                            .value
+                            .trim(),
+
+                    birth_date:
+                        $("#studentBirth")
+                            .value ||
+                        null,
+
+                    notes:
+                        $("#studentNotes")
+                            .value
+                            .trim() ||
+                        null,
+
+                    balance:
+                        Number(
+                            $("#studentBalance")
+                                .value ||
+                            0
+                        ),
+
+                    lesson_price:
+                        Number(
+                            $("#studentPrice")
+                                .value
+                        )
+
+                };
+
+
+                if (!appValidate([
+                    {el: $("#studentName"), label: "Имя ученика"},
+                    {el: $("#studentPrice"), label: "Стоимость занятия"}
+                ])) {
+                    button.disabled = false;
+                    button.textContent = "Сохранить";
+                    return;
+                }
+
+
+                if (!id) {
+
+                    const created =
+                        await api(
+                            "/students",
+                            {
+                                method:
+                                    "POST",
+                                body:
+                                    JSON.stringify(
+                                        payload
+                                    )
+                            }
+                        );
+
+                    id =
+                        created.id;
+
+                } else {
+
+                    await api(
+                        `/students/${id}`,
+                        {
+                            method:
+                                "PATCH",
+                            body:
+                                JSON.stringify(
+                                    payload
+                                )
+                        }
+                    );
+
+                }
+
+
+                if (!lmsFailed) {
+
+                    const chosenCourse =
+                        $("#studentCourse").value ||
+                        null;
+
+                    const currentCourse =
+                        lmsEnrollment
+                        ? lmsEnrollment.course_id
+                        : null;
+
+                    if (chosenCourse !== currentCourse) {
+
+                        await api(
+                            `/lms/students/${id}/course`,
+                            {
+                                method:
+                                    "PUT",
+                                body:
+                                    JSON.stringify({
+                                        course_id:
+                                            chosenCourse
+                                    })
+                            }
+                        );
+
+                    }
+
+                }
+
+
+                await saveParent(
+                    id,
+                    parent
+                );
+
+
+                await loadStudents();
+
+                await loadDashboard();
+
+                await loadFinance();
+
+                closeModal();
+
+            } catch (e) {
+
+                appNotify(
+                    e.message
+                );
+
+            } finally {
+
+                button.disabled =
+                    false;
+
+                button.textContent =
+                    "Сохранить";
+
+            }
+
+        };
+
+
+    if (student) {
+
+        $("#deleteStudent")
+            .onclick =
+            async () => {
+
+                if (
+                    !await appConfirm(
+                        `Удалить ученика "${student.full_name}"?\n\nУченик будет деактивирован и пропадёт из активного расписания.`
+                    )
+                ) {
+
+                    return;
+
+                }
+
+
+                try {
+
+                    await api(
+                        `/students/${student.id}`,
+                        {
+                            method:
+                                "DELETE"
+                        }
+                    );
+
+
+                    closeModal();
+
+                    await loadStudents();
+
+                    await loadDashboard();
+
+                    await loadCalendar();
+
+                } catch (e) {
+
+                    appNotify(
+                        e.message
+                    );
+
+                }
+
+            };
+
+
+        $("#addStudentSlot")
+            .onclick =
+            () =>
+                addStudentSlotEditor();
+
+    }
+
+}
+
+
+function renderStudentSlot(
+    slot
+) {
+
+    return `
+
+        <div
+            class="schedule-box"
+            data-slot-id="${slot.id}"
+        >
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label>
+                        День
+                    </label>
+
+                    <select
+                        class="slot-day"
+                    >
+
+                        ${DAYS.map(
+                            (day, index) =>
+                                `<option
+                                    value="${index}"
+                                    ${
+                                        slot.day_of_week ===
+                                        index
+                                        ? "selected"
+                                        : ""
+                                    }
+                                >
+                                    ${day}
+                                </option>`
+                        ).join("")}
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Время
+                    </label>
+
+                    <input
+                        class="slot-time"
+                        type="time"
+                        value="${slot.start_time.slice(0,5)}"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label>
+                        Тип
+                    </label>
+
+                    <select
+                        class="slot-kind"
+                    >
+
+                        <option
+                            value="lesson"
+                            ${
+                                slot.lesson_kind ===
+                                "lesson"
+                                ? "selected"
+                                : ""
+                            }
+                        >
+                            Урок
+                        </option>
+
+                        <option
+                            value="masterclass"
+                            ${
+                                slot.lesson_kind ===
+                                "masterclass"
+                                ? "selected"
+                                : ""
+                            }
+                        >
+                            Мастер-класс
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Длительность
+                    </label>
+
+                    <input
+                        class="slot-duration"
+                        type="number"
+                        min="15"
+                        max="480"
+                        value="${slot.duration_minutes}"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div
+                style="
+                    display:flex;
+                    justify-content:flex-end;
+                    gap:7px;
+                    margin-top:7px"
+            >
+
+                <button
+                    type="button"
+                    class="btn slot-save"
+                >
+                    Сохранить
+                </button>
+
+                <button
+                    type="button"
+                    class="btn slot-delete"
+                    style="color:#b42318"
+                >
+                    Удалить
+                </button>
+
+            </div>
+
+        </div>
+
+    `;
+
+}
+
+
+function addStudentSlotEditor() {
+
+    const wrapper =
+        $("#studentSlots");
+
+
+    if (
+        !wrapper ||
+        !currentEditingStudentId()
+    ) {
+
+        return;
+
+    }
+
+
+    const temp =
+        document.createElement(
+            "div"
+        );
+
+
+    temp.className =
+        "schedule-box";
+
+
+    temp.innerHTML = `
+
+        <div class="form-row">
+
+            <div class="form-group">
+
+                <label>
+                    День
+                </label>
+
+                <select
+                    class="new-slot-day"
+                >
+
+                    ${DAYS.map(
+                        (
+                            day,
+                            index
+                        ) =>
+                            `<option
+                                value="${index}"
+                            >
+                                ${day}
+                            </option>`
+                    ).join("")}
+
+                </select>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    Время
+                </label>
+
+                <input
+                    class="new-slot-time"
+                    type="time"
+                    value="17:00"
+                >
+
+            </div>
+
+        </div>
+
+
+        <div class="form-row">
+
+            <div class="form-group">
+
+                <label>
+                    Тип
+                </label>
+
+                <select
+                    class="new-slot-kind"
+                >
+
+                    <option value="lesson">
+                        Урок
+                    </option>
+
+                    <option value="masterclass">
+                        Мастер-класс
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    Длительность
+                </label>
+
+                <input
+                    class="new-slot-duration"
+                    type="number"
+                    value="60"
+                    min="15"
+                    max="480"
+                >
+
+            </div>
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>
+                С какого числа
+            </label>
+
+            <input
+                class="new-slot-from"
+                type="date"
+                value="${dateKey(new Date())}"
+            >
+
+        </div>
+
+
+        <div
+            class="form-actions"
+        >
+
+            <button
+                type="button"
+                class="btn primary"
+            >
+                Добавить
+            </button>
+
+        </div>
+
+    `;
+
+
+    temp
+        .querySelector("button")
+        .onclick =
+        async () => {
+
+            const button =
+                temp.querySelector(
+                    "button"
+                );
+
+            button.disabled =
+                true;
+
+            try {
+
+                await createOrReactivateStudentSchedule(
+                    `/students/${currentEditingStudentId()}/schedule`,
+                    {
+                        method:
+                            "POST",
+                        body:
+                            JSON.stringify({
+
+                                lesson_kind:
+                                    temp
+                                        .querySelector(
+                                            ".new-slot-kind"
+                                        )
+                                        .value,
+
+                                day_of_week:
+                                    Number(
+                                        temp
+                                            .querySelector(
+                                                ".new-slot-day"
+                                            )
+                                            .value
+                                    ),
+
+                                start_time:
+                                    temp
+                                        .querySelector(
+                                            ".new-slot-time"
+                                        )
+                                        .value,
+
+                                duration_minutes:
+                                    Number(
+                                        temp
+                                            .querySelector(
+                                                ".new-slot-duration"
+                                            )
+                                            .value
+                                    ),
+
+                                valid_from:
+                                    (temp.querySelector(".new-slot-from").value || dateKey(new Date())),
+
+                                valid_until:
+                                    null
+
+                            })
+
+                    }
+                );
+
+
+                await loadStudents();
+
+                await loadCalendar();
+
+                openStudentEditor(
+                    currentEditingStudentId()
+                );
+
+            } catch (e) {
+
+                appNotify(
+                    e.message
+                );
+
+                button.disabled =
+                    false;
+
+            }
+
+        };
+
+
+    wrapper.appendChild(
+        temp
+    );
+
+}
+
+
+let editingStudentId =
+    null;
+
+
+function currentEditingStudentId() {
+
+    return editingStudentId;
+
+}
+
+
+const originalOpenStudentEditor =
+    openStudentEditor;
+
+
+async function openStudentEditorTracked(
+    studentId
+) {
+
+    editingStudentId =
+        studentId;
+
+    await originalOpenStudentEditor(
+        studentId
+    );
+
+
+    if (studentId) {
+
+        document
+            .querySelectorAll(
+                ".slot-save"
+            )
+            .forEach(
+                button =>
+                    button.onclick =
+                    async () => {
+
+                        const box =
+                            button.closest(
+                                "[data-slot-id]"
+                            );
+
+                        const slotId =
+                            box.dataset.slotId;
+
+
+                        try {
+
+                            button.disabled =
+                                true;
+
+                            await api(
+                                `/students/${studentId}/schedule/${slotId}`,
+                                {
+                                    method:
+                                        "PATCH",
+                                    body:
+                                        JSON.stringify({
+
+                                            lesson_kind:
+                                                box
+                                                    .querySelector(
+                                                        ".slot-kind"
+                                                    )
+                                                    .value,
+
+                                            day_of_week:
+                                                Number(
+                                                    box
+                                                        .querySelector(
+                                                            ".slot-day"
+                                                        )
+                                                        .value
+                                                ),
+
+                                            start_time:
+                                                box
+                                                    .querySelector(
+                                                        ".slot-time"
+                                                    )
+                                                    .value,
+
+                                            duration_minutes:
+                                                Number(
+                                                    box
+                                                        .querySelector(
+                                                            ".slot-duration"
+                                                        )
+                                                        .value
+                                                )
+
+                                        })
+                                }
+                            );
+
+
+                            await loadCalendar();
+
+                            appNotify(
+                                "Расписание сохранено."
+                            );
+
+                        } catch (e) {
+
+                            appNotify(
+                                e.message
+                            );
+
+                        } finally {
+
+                            button.disabled =
+                                false;
+
+                        }
+
+                    }
+            );
+
+
+        document
+            .querySelectorAll(
+                ".slot-delete"
+            )
+            .forEach(
+                button =>
+                    button.onclick =
+                    async () => {
+
+                        const box =
+                            button.closest(
+                                "[data-slot-id]"
+                            );
+
+                        if (
+                            !await appConfirm(
+                                "Удалить этот день из расписания?"
+                            )
+                        )
+                            return;
+
+
+                        try {
+
+                            await api(
+                                `/students/${studentId}/schedule/${box.dataset.slotId}`,
+                                {
+                                    method:
+                                        "DELETE"
+                                }
+                            );
+
+
+                            await loadStudents();
+
+                            await loadCalendar();
+
+                            openStudentEditor(
+                                studentId
+                            );
+
+                        } catch (e) {
+
+                            appNotify(
+                                e.message
+                            );
+
+                        }
+
+                    }
+            );
+
+    }
+
+}
+
+
+window.openStudentEditor =
+    openStudentEditorTracked;
+
+
+/* =========================================================
+   PARENT
+========================================================= */
+
+async function saveParent(
+    studentId,
+    existingParent
+) {
+
+    const name =
+        $("#parentName")?.value
+            .trim();
+
+    const phone =
+        $("#parentPhone")?.value
+            .trim();
+
+
+    if (
+        !name &&
+        !phone
+    ) {
+
+        if (existingParent) {
+
+            await api(
+                `/students/${studentId}/parents/${existingParent.id}`,
+                {
+                    method:
+                        "DELETE"
+                }
+            );
+
+        }
+
+        return;
+
+    }
+
+
+    if (!name) {
+
+        throw new Error(
+            "Укажите имя родителя."
+        );
+
+    }
+
+
+    const payload = {
+
+        full_name:
+            name,
+
+        phone:
+            phone ||
+            null
+
+    };
+
+
+    if (
+        existingParent
+    ) {
+
+        await api(
+            `/parents/${existingParent.id}`,
+            {
+                method:
+                    "PATCH",
+                body:
+                    JSON.stringify(
+                        payload
+                    )
+            }
+        );
+
+    } else {
+
+        const parent =
+            await api(
+                "/parents",
+                {
+                    method:
+                        "POST",
+                    body:
+                        JSON.stringify(
+                            payload
+                        )
+                }
+            );
+
+
+        await api(
+            `/students/${studentId}/parents/${parent.id}`,
+            {
+                method:
+                    "POST"
+            }
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   CALENDAR
+========================================================= */
+
+function startOfWeek(
+    date
+) {
+
+    const d =
+        new Date(date);
+
+    d.setHours(
+        0,
+        0,
+        0,
+        0
+    );
+
+    const day =
+        d.getDay();
+
+    const diff =
+        day === 0
+        ? -6
+        : 1 - day;
+
+    d.setDate(
+        d.getDate() + diff
+    );
+
+    return d;
+
+}
+
+
+function endOfWeek(
+    date
+) {
+
+    const start =
+        startOfWeek(
+            date
+        );
+
+    const end =
+        new Date(start);
+
+    end.setDate(
+        start.getDate() + 6
+    );
+
+    return end;
+
+}
+
+
+async function loadCalendar() {
+
+    try {
+
+        let endpoint;
+
+
+        if (
+            state.calendar.view ===
+            "month"
+        ) {
+
+            const month =
+                new Date(
+                    state.calendar.date
+                );
+
+            month.setDate(1);
+
+            endpoint =
+                `/schedule/month?month_start=${dateKey(month)}`;
+
+        } else {
+
+            const start =
+                startOfWeek(
+                    state.calendar.date
+                );
+
+            endpoint =
+                `/schedule/week?week_start=${dateKey(start)}`;
+
+        }
+
+
+        state.calendar.items =
+            await api(
+                endpoint
+            );
+
+
+        renderCalendar();
+
+    } catch (e) {
+
+        $("#calendar")
+            .innerHTML =
+            `<div class="empty">
+                ${esc(e.message)}
+            </div>`;
+
+    }
+
+}
+
+
+
+
+/* ITDETI_CALENDAR_CONTROLS_V2 */
+function calendarMonthLabel(date) {
+    return date.toLocaleDateString("ru-RU", {month:"long", year:"numeric"});
+}
+
+function calendarRangeLabel() {
+    const d = new Date(state.calendar.date);
+    if (state.calendar.view === "month") return calendarMonthLabel(d);
+    if (state.calendar.view === "day") {
+        return d.toLocaleDateString("ru-RU", {weekday:"long", day:"numeric", month:"long", year:"numeric"});
+    }
+    const start = startOfWeek(d);
+    const end = endOfWeek(d);
+    return `${start.toLocaleDateString("ru-RU", {day:"numeric", month:"long"})} — ${end.toLocaleDateString("ru-RU", {day:"numeric", month:"long", year:"numeric"})}`;
+}
+
+function calendarMove(direction) {
+    const d = new Date(state.calendar.date);
+    if (state.calendar.view === "month") {
+        d.setDate(1);
+        d.setMonth(d.getMonth() + direction);
+    } else if (state.calendar.view === "day") {
+        d.setDate(d.getDate() + direction);
+    } else {
+        d.setDate(d.getDate() + direction * 7);
+    }
+    state.calendar.date = d;
+    loadCalendar();
+}
+
+function updateCalendarViewButtons() {
+    document.querySelectorAll("[data-calendar-view]").forEach(button => {
+        button.classList.toggle("active", button.dataset.calendarView === state.calendar.view);
+    });
+}
+
+function calendarPickerDays(monthDate) {
+    const year = monthDate.getFullYear();
+    const month = monthDate.getMonth();
+    const first = new Date(year, month, 1);
+    const offset = first.getDay() === 0 ? 6 : first.getDay() - 1;
+    const count = new Date(year, month + 1, 0).getDate();
+    const cells = [];
+    for (let i = 0; i < offset; i++) cells.push(null);
+    for (let day = 1; day <= count; day++) cells.push(new Date(year, month, day));
+    return cells;
+}
+
+function renderCalendarHeader() {
+    const title = $("#calendarTitle");
+    if (!title) return;
+    title.innerHTML = `
+        <div class="calendar-title-wrap">
+            <button type="button" class="calendar-month-title" id="calendarMonthTitle">${calendarRangeLabel()}</button>
+            <div class="calendar-month-picker" id="calendarMonthPicker" hidden></div>
+        </div>`;
+    const button = $("#calendarMonthTitle");
+    if (button) button.onclick = event => {
+        event.stopPropagation();
+        const picker = $("#calendarMonthPicker");
+        if (!picker.hidden) {
+            picker.hidden = true;
+            return;
+        }
+        renderCalendarMonthPicker();
+        picker.hidden = false;
+    };
+}
+
+function renderCalendarMonthPicker() {
+    const picker = $("#calendarMonthPicker");
+    if (!picker) return;
+    const month = new Date(state.calendar.date);
+    month.setDate(1);
+    const cells = calendarPickerDays(month);
+    const todayKey = dateKey(new Date());
+    const monthTitle = calendarMonthLabel(month);
+    picker.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <button type="button" class="icon-btn" id="calendarPickerPrev">‹</button>
+            <b>${monthTitle}</b>
+            <button type="button" class="icon-btn" id="calendarPickerNext">›</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;font-size:10px;color:var(--muted);text-align:center;margin-bottom:3px">
+            ${DAYS_SHORT.map(day => `<div>${day}</div>`).join("")}
+        </div>
+        <div class="calendar-month-picker-grid">
+            ${cells.map(date => date ? `<button type="button" class="${dateKey(date) === todayKey ? "today" : ""}" data-picker-date="${dateKey(date)}">${date.getDate()}</button>` : `<span></span>`).join("")}
+        </div>
+        <button type="button" class="btn" id="calendarPickerToday" style="width:100%;margin-top:8px">Сегодня</button>`;
+
+    $("#calendarPickerPrev").onclick = () => {
+        month.setMonth(month.getMonth() - 1);
+        state.calendar.date = month;
+        renderCalendarMonthPicker();
+    };
+    $("#calendarPickerNext").onclick = () => {
+        month.setMonth(month.getMonth() + 1);
+        state.calendar.date = month;
+        renderCalendarMonthPicker();
+    };
+    $("#calendarPickerToday").onclick = () => {
+        state.calendar.date = new Date();
+        state.calendar.view = "day";
+        updateCalendarViewButtons();
+        loadCalendar();
+    };
+    picker.querySelectorAll("[data-picker-date]").forEach(button => {
+        button.onclick = () => {
+            state.calendar.date = new Date(`${button.dataset.pickerDate}T12:00:00`);
+            state.calendar.view = "day";
+            updateCalendarViewButtons();
+            loadCalendar();
+        };
+    });
+}
+
+function bindCalendarControls() {
+    $("#prevPeriod").onclick = () => calendarMove(-1);
+    $("#nextPeriod").onclick = () => calendarMove(1);
+    $("#todayPeriod").onclick = () => {
+        state.calendar.date = new Date();
+        loadCalendar();
+    };
+    document.querySelectorAll("[data-calendar-view]").forEach(button => {
+        button.onclick = () => {
+            state.calendar.view = button.dataset.calendarView;
+            updateCalendarViewButtons();
+            loadCalendar();
+        };
+    });
+    document.addEventListener("click", event => {
+        const title = $("#calendarTitle");
+        if (title && !title.contains(event.target)) {
+            const picker = $("#calendarMonthPicker");
+            if (picker) picker.hidden = true;
+        }
+    });
+    updateCalendarViewButtons();
+}
+
+function renderCalendar() {
+
+    const start =
+        startOfWeek(
+            state.calendar.date
+        );
+
+    const end =
+        endOfWeek(
+            state.calendar.date
+        );
+
+
+    renderCalendarHeader();
+
+
+    if (
+        state.calendar.view ===
+        "month"
+    ) {
+
+        renderMonthCalendar(
+            state.calendar.date
+        );
+
+    }
+
+
+    if (
+        state.calendar.view ===
+        "week"
+    ) {
+
+        renderWeekCalendar(
+            start
+        );
+
+    }
+
+
+    if (
+        state.calendar.view ===
+        "list"
+    ) {
+
+        renderListCalendar(
+            start
+        );
+
+    }
+
+
+    if (
+        state.calendar.view ===
+        "day"
+    ) {
+
+        renderDayCalendar(
+            state.calendar.date
+        );
+
+    }
+
+}
+
+
+function itemsForDate(
+    date
+) {
+
+    const key =
+        dateKey(date);
+
+
+    return state.calendar.items
+        .filter(
+            item =>
+                !item.is_cancelled &&
+                dateKey(
+                    new Date(
+                        item.start_time
+                    )
+                ) === key
+        )
+        .sort(
+            (
+                a,
+                b
+            ) =>
+                new Date(a.start_time) -
+                new Date(b.start_time)
+        );
+
+}
+
+function getCalendarStatus(
+    item
+) {
+
+    if (
+        item.item_type !==
+        "lesson"
+    ) {
+
+        return {
+            icon: "",
+            title: ""
+        };
+
+    }
+
+
+    const end =
+        new Date(
+            item.end_time
+        );
+
+
+    if (
+        Date.now() >=
+        end.getTime()
+    ) {
+
+        return {
+            icon: "✓",
+            title: "Проведено"
+        };
+
+    }
+
+
+    return {
+        icon: "◷",
+        title: "Запланировано"
+    };
+
+}
+
+
+function getCalendarIcon(
+    item
+) {
+
+    if (
+        item.item_type ===
+        "event"
+    ) {
+
+        return "•";
+
+    }
+
+
+    if (
+        item.lesson_kind ===
+        "masterclass"
+    ) {
+
+        return "◆";
+
+    }
+
+
+    return "●";
+
+}
+
+function renderWeekCalendar(start) {
+    const HOURS = Array.from({length: 17}, (_, i) => i + 7);
+    let html = `
+        <div class="calendar-scroll">
+            <div class="week-calendar">
+                <div class="time-column">
+                    <div class="day-header" style="cursor:default"></div>
+                    ${HOURS.map(hour => `<div class="time-label">${pad(hour)}:00</div>`).join("")}
+                </div>`;
+
+    for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+        const date = new Date(start);
+        date.setDate(start.getDate() + dayIndex);
+        const items = itemsForDate(date);
+        const isToday = dateKey(date) === dateKey(new Date());
+        html += `
+            <div class="day-column">
+                <div class="day-header ${isToday ? "today" : ""}"
+                     onclick="state.calendar.date=new Date('${dateKey(date)}T12:00:00');state.calendar.view='day';updateCalendarViewButtons();renderCalendar();">
+                    <span class="day-number">${date.getDate()}</span>
+                    <span class="day-name">${DAYS_SHORT[dayIndex]}</span>
+                </div>`;
+        HOURS.forEach(() => { html += `<div class="hour-line"></div>`; });
+
+        items.forEach(item => {
+            const dt = new Date(item.start_time);
+            const end = new Date(item.end_time);
+            const minutes = dt.getHours() * 60 + dt.getMinutes() - 7 * 60;
+            const duration = Math.max(30, (end - dt) / 60000);
+            const top = 42 + minutes * (30 / 60);
+            const height = Math.max(22, duration * (30 / 60));
+            const color = calendarColor(item);
+            html += `
+                <div class="calendar-event"
+                     style="top:${top}px;height:${height}px;--item-color:${color};"
+                     onclick="event.stopPropagation();openCalendarItem('${item.item_id}','${item.item_type}');">
+                    <div class="calendar-event-title">${esc(item.item_type === "event" ? item.title : (item.student_name || item.title))}</div>
+                    <div class="calendar-event-meta">${calendarTimeRange(item)}</div>
+                </div>`;
+        });
+        html += `</div>`;
+    }
+
+    html += `</div></div>`;
+    $("#calendar").innerHTML = html;
+}
+
+function renderMonthCalendar(monthDate) {
+    const year = monthDate.getFullYear();
+    const month = monthDate.getMonth();
+    const first = new Date(year, month, 1);
+    const firstWeekday = first.getDay() === 0 ? 6 : first.getDay() - 1;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const cells = [];
+
+    for (let i = 0; i < firstWeekday; i++) {
+        const d = new Date(year, month, 1 - (firstWeekday - i));
+        cells.push({date:d, other:true});
+    }
+    for (let day = 1; day <= daysInMonth; day++) cells.push({date:new Date(year, month, day), other:false});
+    while (cells.length % 7) {
+        const last = cells[cells.length - 1].date;
+        const d = new Date(last); d.setDate(last.getDate() + 1);
+        cells.push({date:d, other:true});
+    }
+
+    let html = `<div class="google-month-calendar">
+        <div class="google-month-weekdays">${DAYS_SHORT.map(d => `<div>${d}</div>`).join("")}</div>
+        <div class="google-month-grid">`;
+
+    cells.forEach(cell => {
+        const date = cell.date;
+        const items = itemsForDate(date);
+        const today = dateKey(date) === dateKey(new Date());
+        const classes = `google-month-day ${cell.other ? "other-month" : ""} ${today ? "today" : ""}`;
+        const dots = [...new Map(items.map(item => [calendarColor(item), item])).values()].slice(0, 5);
+        const visible = items.slice(0, 3);
+
+        html += `<div class="${classes}" onclick="state.calendar.date=new Date('${dateKey(date)}T12:00:00');state.calendar.view='day';updateCalendarViewButtons();renderCalendar();">
+            <div class="google-month-number">${date.getDate()}</div>
+            <div class="google-month-dots">${dots.map(item => `<span class="google-month-dot" style="background:${calendarColor(item)}"></span>`).join("")}</div>
+            <div class="google-month-events">
+                ${visible.map(item => {
+                    const time = new Date(item.start_time).toLocaleTimeString("ru-RU", {hour:"2-digit",minute:"2-digit"});
+                    const label = item.item_type === "event" ? item.title : (item.student_name || item.title);
+                    return `<div class="google-month-event" style="--item-color:${calendarColor(item)}" onclick="event.stopPropagation();openCalendarItem('${item.item_id}','${item.item_type}');">${time} · ${esc(label)}</div>`;
+                }).join("")}
+                ${items.length > 3 ? `<div class="google-month-more">ещё ${items.length - 3}</div>` : ""}
+            </div>
+        </div>`;
+    });
+
+    html += `</div></div>`;
+    $("#calendar").innerHTML = html;
+}
+
+function renderListCalendar(start) {
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+        const date = new Date(start);
+        date.setDate(start.getDate() + i);
+        days.push(date);
+    }
+
+    let html = `<div class="agenda-calendar" id="agendaCalendar">`;
+
+    days.forEach(date => {
+        const items = itemsForDate(date);
+        const isToday = dateKey(date) === dateKey(new Date());
+        const weekday = date.toLocaleDateString("ru-RU", { weekday: "short" }).replace('.', '');
+        const dateText = date.toLocaleDateString("ru-RU", { day: "numeric", month: "short" }).replace('.', '');
+
+        html += `
+            <section class="agenda-day ${isToday ? "today" : ""}" data-agenda-date="${dateKey(date)}">
+                <div class="agenda-date ${isToday ? "today" : ""}">
+                    <span class="weekday">${weekday}</span>
+                    <span class="date">${dateText}</span>
+                    ${isToday ? `<span class="agenda-today-badge">Сегодня</span>` : ""}
+                </div>
+                <div class="agenda-events">
+                    ${items.length ? items.map(item => {
+                        const startTime = new Date(item.start_time);
+                        const endTime = new Date(item.end_time);
+                        const time = startTime.toLocaleTimeString("ru-RU", {hour:"2-digit", minute:"2-digit"});
+                        const end = endTime.toLocaleTimeString("ru-RU", {hour:"2-digit", minute:"2-digit"});
+                        const title = item.item_type === "event" ? item.title : (item.student_name || item.title || "Занятие");
+                        const meta = item.item_type === "event"
+                            ? (item.location || item.event_type || "")
+                            : (item.lesson_kind === "masterclass" ? "Мастер-класс" : (item.course || "Урок"));
+                        const color = calendarColor(item);
+                        return `
+                            <div class="agenda-row" data-agenda-item="${esc(item.item_id)}">
+                                <div class="agenda-time">
+                                    <span>${time}</span>
+                                </div>
+                                <button type="button"
+                                        class="agenda-card"
+                                        style="--item-color:${color}"
+                                        onclick="openCalendarItem('${item.item_id}','${item.item_type}')">
+                                    <div class="agenda-card-title">${esc(title)}</div>
+                                    <div class="agenda-card-meta">${esc(meta)}${meta ? " · " : ""}${time}–${end}</div>
+                                </button>
+                            </div>`;
+                    }).join("") : `<div class="agenda-empty">Нет событий</div>`}
+                </div>
+            </section>`;
+    });
+
+    html += `</div>`;
+    $("#calendar").innerHTML = html;
+
+    // On mobile, open the agenda at today; if there is a current/future item,
+    // scroll a little further so the first useful entry is immediately visible.
+    const container = $("#agendaCalendar");
+    const today = container?.querySelector(".agenda-day.today");
+    if (today) {
+        requestAnimationFrame(() => today.scrollIntoView({block: "start", behavior: "auto"}));
+    }
+}
+
+function renderDayCalendar(date) {
+    const items = itemsForDate(date);
+    $("#calendar").innerHTML = `
+        <div class="day-calendar">
+            <div class="day-title">${date.toLocaleDateString("ru-RU", {weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
+            ${items.length ? items.map(item => calendarItemHtml(item)).join("") : `<div class="empty">На этот день записей нет</div>`}
+        </div>`;
+}
+
+function calendarColor(item) {
+    const value = String(item?.color || "").trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(value)) return value;
+    return item?.item_type === "event" ? "#64748b" : item?.lesson_kind === "masterclass" ? "#d97706" : "#4f46e5";
+}
+
+function getVisibleLessonStatus(item) { return item.item_type === "lesson" && Date.now() >= new Date(item.end_time).getTime() ? "Проведено" : "Запланировано"; }
+
+function calendarTimeRange(item) {
+    const start = new Date(item.start_time);
+    if (Number.isNaN(start.getTime())) return "";
+
+    const startText = start.toLocaleTimeString("ru-RU", {
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+
+    if (!item.end_time) return startText;
+
+    const end = new Date(item.end_time);
+    if (Number.isNaN(end.getTime())) return startText;
+
+    const endText = end.toLocaleTimeString("ru-RU", {
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+
+    return `${startText}–${endText}`;
+}
+
+function calendarItemHtml(item) {
+    const color = calendarColor(item);
+    const title = item.item_type === "event" ? item.title : (item.student_name || item.title);
+    const subtitle = item.item_type === "event" ? (item.location || "") : (item.lesson_kind === "masterclass" ? "Мастер-класс" : "Урок");
+    const timeRange = calendarTimeRange(item);
+    return `
+        <div class="calendar-item calendar-colored"
+             style="--item-color:${color}"
+             onclick="openCalendarItem('${item.item_id}','${item.item_type}')">
+            <div>
+                <b>${esc(title)}</b>
+                <div class="small">${timeRange}${subtitle ? ` · ${esc(subtitle)}` : ""}</div>
+            </div>
+        </div>`;
+}
+
+async function openCalendarItem(
+    id,
+    type
+) {
+
+    if (
+        type ===
+        "lesson"
+    ) {
+
+        const item =
+            state.calendar.items
+                .find(
+                    x =>
+                        String(
+                            x.item_id
+                        ) ===
+                        String(id)
+                );
+
+
+        if (!item)
+            return;
+
+
+        const studentOptions =
+            state.students.map(
+                student =>
+                    `<option
+                        value="${student.id}"
+                        ${
+                            String(
+                                student.id
+                            ) ===
+                            String(
+                                item.student_id
+                            )
+                            ? "selected"
+                            : ""
+                        }
+                    >
+                        ${esc(
+                            student.full_name
+                        )}
+                     </option>`
+            ).join("");
+
+
+        openModal(
+
+            "Редактирование занятия",
+
+            `
+
+                <div class="form">
+
+                    <div class="form-row">
+
+                        <div class="form-group">
+
+                            <label>
+                                Ученик
+                            </label>
+
+                            <select
+                                id="editStudent"
+                            >
+
+                                ${studentOptions}
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label>
+                                Тип
+                            </label>
+
+                            <select
+                                id="editKind"
+                            >
+
+                                <option
+                                    value="lesson"
+                                    ${
+                                        item.lesson_kind ===
+                                        "lesson"
+                                        ? "selected"
+                                        : ""
+                                    }
+                                >
+                                    Урок
+                                </option>
+
+                                <option
+                                    value="masterclass"
+                                    ${
+                                        item.lesson_kind ===
+                                        "masterclass"
+                                        ? "selected"
+                                        : ""
+                                    }
+                                >
+                                    Мастер-класс
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-row">
+
+                        <div class="form-group">
+
+                            <label>
+                                Дата и время
+                            </label>
+
+                            <input
+                                id="editStart"
+                                type="datetime-local"
+                                value="${toLocalInput(
+                                    item.start_time
+                                )}"
+                            >
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label>
+                                Длительность
+                            </label>
+
+                            <input
+                                id="editDuration"
+                                type="number"
+                                min="15"
+                                max="480"
+                                value="${
+                                    Math.round(
+                                        (
+                                            new Date(
+                                                item.end_time
+                                            ) -
+                                            new Date(
+                                                item.start_time
+                                            )
+                                        ) / 60000
+                                    )
+                                }"
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-row">
+
+
+                        <div class="form-group">
+
+                            <label>
+                                Цена
+                            </label>
+
+                            <input
+                                id="editPrice"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value="${
+                                    item.lesson_price ||
+                                    0
+                                }"
+                            >
+
+                        </div>
+
+                    </div>
+
+
+
+                        <div class="form-group">
+                            <label>Цвет</label>
+                            <input id="editColor" type="color" value="${item.color || "#4f46e5"}" style="height:42px;padding:4px">
+                        </div>
+
+                    <div class="form-group">
+
+                        <label>
+                            Тема
+                        </label>
+
+                        <input
+                            id="editTopic"
+                            value="${
+                                esc(
+                                    item.topic ||
+                                    ""
+                                )
+                            }"
+                        >
+
+                    </div>
+
+
+                    ${
+                        item.lesson_status === "cancelled" ||
+                        item.lesson_status === "completed" ||
+                        Date.now() >= new Date(item.end_time).getTime()
+                        ? ""
+                        : `<div class="form-group" style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+                            <label>Ход курса</label>
+                            <div class="small">
+                                Отменить: урок не состоится, его тема перейдёт на следующее занятие по расписанию.
+                                Другое время: тот же урок, но в другой день или час — темы не путаются.
+                            </div>
+                            <div class="form-actions" style="justify-content:flex-start;margin-top:8px">
+                                <button type="button" class="btn" id="cancelCalendarLesson">Отменить урок</button>
+                                <button type="button" class="btn" id="rescheduleCalendarLesson">Назначить на другое время</button>
+                            </div>
+                        </div>`
+                    }
+
+
+                    <div class="form-actions">
+
+                        <button
+                            type="button"
+                            class="btn"
+                            style="
+                                margin-right:auto;
+                                color:#b42318"
+                            "
+                            id="deleteCalendarItem"
+                        >
+                            Удалить
+                        </button>
+
+
+                        <button
+                            type="button"
+                            class="btn primary"
+                            id="saveCalendarItem"
+                        >
+                            Сохранить
+                        </button>
+
+                    </div>
+
+                </div>
+
+            `
+
+        );
+
+
+        $("#saveCalendarItem")
+            .onclick =
+            async () => {
+
+                const button =
+                    $("#saveCalendarItem");
+
+                button.disabled =
+                    true;
+
+                try {
+
+                    await api(
+                        `/lessons/${id}`,
+                        {
+                            method:
+                                "PATCH",
+                            body:
+                                JSON.stringify({
+
+                                    lesson_kind:
+                                        $("#editKind")
+                                            .value,
+
+                                    start_time:
+                                        $("#editStart").value === toLocalInput(item.start_time)
+                                        ? undefined
+                                        : new Date(
+                                            $("#editStart")
+                                                .value
+                                        ).toISOString(),
+
+                                    duration_minutes:
+                                        Number(
+                                            $("#editDuration")
+                                                .value
+                                        ),
+
+                                    price:
+                                        Number(
+                                            $("#editPrice")
+                                                .value
+                                        ),
+
+                                    color:
+                                        $("#editColor").value,
+
+                                    topic:
+                                        $("#editTopic")
+                                            .value
+                                            .trim() ||
+                                        null
+
+                                })
+                        }
+                    );
+
+
+                    closeModal();
+
+                    await loadCalendar();
+
+                    await loadDashboard();
+
+                    await loadStudents();
+
+                } catch (e) {
+
+                    appNotify(
+                        e.message
+                    );
+
+                } finally {
+
+                    button.disabled =
+                        false;
+
+                }
+
+            };
+
+
+        if ($("#cancelCalendarLesson")) {
+
+            $("#cancelCalendarLesson")
+                .onclick =
+                async () => {
+
+                    if (
+                        !await appConfirm(
+                            "Отменить этот урок? Он не состоится, а его тема перейдёт на следующее занятие по расписанию. Конец курса сдвинется."
+                        )
+                    )
+                        return;
+
+
+                    try {
+
+                        await api(
+                            `/lessons/${id}/cancel`,
+                            {
+                                method:
+                                    "POST"
+                            }
+                        );
+
+
+                        closeModal();
+
+                        await loadCalendar();
+
+                        await loadDashboard();
+
+                        await loadStudents();
+
+                    } catch (e) {
+
+                        appNotify(
+                            e.message
+                        );
+
+                    }
+
+                };
+
+        }
+
+
+        if ($("#rescheduleCalendarLesson")) {
+
+            $("#rescheduleCalendarLesson")
+                .onclick =
+                () => {
+
+                    const input =
+                        $("#editStart");
+
+                    input.focus();
+
+                    input.style.boxShadow =
+                        "0 0 0 2px var(--primary)";
+
+                    $("#saveCalendarItem")
+                        .textContent =
+                        "Перенести";
+
+                };
+
+        }
+
+
+        $("#deleteCalendarItem")
+            .onclick =
+            async () => {
+
+                if (
+                    !await appConfirm(
+                        "Удалить это занятие? Если у ученика есть курс, тема этого урока перейдёт на следующее занятие по расписанию."
+                    )
+                )
+                    return;
+
+
+                try {
+
+                    await api(
+                        `/lessons/${id}`,
+                        {
+                            method:
+                                "DELETE"
+                        }
+                    );
+
+
+                    closeModal();
+
+                    await loadCalendar();
+
+                    await loadDashboard();
+
+                    await loadStudents();
+
+                } catch (e) {
+
+                    appNotify(
+                        e.message
+                    );
+
+                }
+
+            };
+
+
+    } else {
+
+        openEventEditor(
+            id
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   PERSONAL EVENT
+========================================================= */
+
+$("#addEvent").onclick =
+    () =>
+        openEventEditor(
+            null
+        );
+
+
+
+
+/* ITDETI_EVENT_FORM_DIRECT_DEFAULTS_V1 */
+function defaultEventStartValue() {
+    const d = new Date();
+    d.setMinutes(0, 0, 0);
+    d.setHours(d.getHours() + 1);
+    return toLocalInput(d.toISOString());
+}
+
+function defaultEventEndValue(item) {
+    if (item?.end_time) return toLocalInput(item.end_time);
+    const start = item?.start_time ? new Date(item.start_time) : new Date();
+    if (!item?.start_time) {
+        start.setMinutes(0, 0, 0);
+        start.setHours(start.getHours() + 1);
+    }
+    return toLocalInput(new Date(start.getTime() + 60 * 60 * 1000).toISOString());
+}
+
+async function openEventEditor(
+    id
+) {
+
+    const item =
+        id
+        ? state.calendar.items
+            .find(
+                x =>
+                    String(
+                        x.item_id
+                    ) ===
+                    String(id)
+            )
+        : null;
+
+
+    openModal(
+
+        id
+        ? "Редактирование события"
+        : "Новое событие",
+
+        `
+
+            <div class="form">
+
+                <div class="form-group">
+
+                    <label>
+                        Название
+                    </label>
+
+                    <input
+                        id="eventTitle"
+                        value="${
+                            esc(
+                                item?.title ||
+                                ""
+                            )
+                        }"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-row">
+
+                    <div class="form-group">
+
+                        <label>
+                            Тип
+                        </label>
+
+                        <select
+                            id="eventType"
+                        >
+
+                            <option
+                                value="personal"
+                                ${
+                                    item?.event_type ===
+                                    "personal"
+                                    ? "selected"
+                                    : ""
+                                }
+                            >
+                                Личное
+                            </option>
+
+                            <option
+                                value="meeting"
+                                ${
+                                    item?.event_type ===
+                                    "meeting"
+                                    ? "selected"
+                                    : ""
+                                }
+                            >
+                                Встреча
+                            </option>
+
+                            <option
+                                value="reminder"
+                                ${
+                                    item?.event_type ===
+                                    "reminder"
+                                    ? "selected"
+                                    : ""
+                                }
+                            >
+                                Напоминание
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>
+                            Место
+                        </label>
+
+                        <input
+                            id="eventLocation"
+                            value="${
+                                esc(
+                                    item?.location ||
+                                    ""
+                                )
+                            }"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-row">
+
+                    <div class="form-group">
+
+                        <label>
+                            Начало
+                        </label>
+
+                        <input
+                            id="eventStart"
+                            type="datetime-local"
+                            value="${item?.start_time ? toLocalInput(item.start_time) : defaultEventStartValue()}"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>
+                            Конец
+                        </label>
+
+                        <input
+                            id="eventEnd"
+                            type="datetime-local"
+                            value="${defaultEventEndValue(item)}"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        Заметки
+                    </label>
+
+                    <textarea
+                        id="eventNotes"
+                        rows="3"
+                    >${
+                        esc(
+                            item?.notes ||
+                            ""
+                        )
+                    }</textarea>
+
+                </div>
+
+                <div class="form-group">
+                    <label>Цвет</label>
+                    <input id="eventColor" type="color" value="${item?.color || "#64748b"}" style="height:42px;padding:4px">
+                </div>
+
+
+
+
+                <div class="form-actions">
+
+                    ${
+                        id
+                        ? `
+                            <button
+                                type="button"
+                                class="btn"
+                                style="
+                                    margin-right:auto;
+                                    color:#b42318"
+                                "
+                                id="deleteEvent"
+                            >
+                                Удалить
+                            </button>
+                          `
+                        : ""
+                    }
+
+
+                    <button
+                        type="button"
+                        class="btn primary"
+                        id="saveEvent"
+                    >
+                        Сохранить
+                    </button>
+
+                </div>
+
+            </div>
+
+        `
+
+    );
+
+
+    const eventStartInput = $("#eventStart");
+    const eventEndInput = $("#eventEnd");
+    if (eventStartInput && eventEndInput) {
+        eventStartInput.addEventListener("change", () => {
+            if (!eventEndInput.dataset.userChanged) {
+                const d = new Date(eventStartInput.value);
+                if (!Number.isNaN(d.getTime())) {
+                    eventEndInput.value = toLocalInput(new Date(d.getTime() + 60 * 60 * 1000).toISOString());
+                }
+            }
+        });
+        eventEndInput.addEventListener("change", () => { eventEndInput.dataset.userChanged = "1"; });
+    }
+
+    $("#saveEvent")
+        .onclick =
+        async () => {
+
+            const button =
+                $("#saveEvent");
+
+            button.disabled =
+                true;
+
+
+            try {
+
+                const payload = {
+
+                    title:
+                        $("#eventTitle")
+                            .value
+                            .trim(),
+
+                    event_type:
+                        $("#eventType")
+                            .value,
+
+                    start_time:
+                        new Date(
+                            $("#eventStart")
+                                .value
+                        ).toISOString(),
+
+                    end_time:
+                        new Date(
+                            $("#eventEnd")
+                                .value
+                        ).toISOString(),
+
+                    location:
+                        $("#eventLocation")
+                            .value
+                            .trim() ||
+                        null,
+
+                    notes:
+                        $("#eventNotes")
+                            .value
+                            .trim() ||
+                        null,
+
+                    color:
+                        $("#eventColor")
+                            .value
+
+                };
+
+
+                if (id) {
+
+                    await api(
+                        `/events/${id}`,
+                        {
+                            method:
+                                "PATCH",
+                            body:
+                                JSON.stringify(
+                                    payload
+                                )
+                        }
+                    );
+
+                } else {
+
+                    await api(
+                        "/events",
+                        {
+                            method:
+                                "POST",
+                            body:
+                                JSON.stringify(
+                                    payload
+                                )
+                        }
+                    );
+
+                }
+
+
+                closeModal();
+
+                await loadCalendar();
+
+                await loadDashboard();
+
+            } catch (e) {
+
+                appNotify(
+                    e.message
+                );
+
+            } finally {
+
+                button.disabled =
+                    false;
+
+            }
+
+        };
+
+
+    if (id) {
+
+        $("#deleteEvent")
+            .onclick =
+            async () => {
+
+                if (
+                    !await appConfirm(
+                        "Удалить событие?"
+                    )
+                )
+                    return;
+
+
+                try {
+
+                    await api(
+                        `/events/${id}`,
+                        {
+                            method:
+                                "DELETE"
+                        }
+                    );
+
+
+                    closeModal();
+
+                    await loadCalendar();
+
+                    await loadDashboard();
+
+                } catch (e) {
+
+                    appNotify(
+                        e.message
+                    );
+
+                }
+
+            };
+
+    }
+
+}
+
+
+/* =========================================================
+   ADD LESSON — 1-3 DAYS PER WEEK
+========================================================= */
+
+$("#addLesson").onclick =
+    () => {
+
+        if (
+            !state.students.length
+        ) {
+
+            loadStudents()
+                .then(
+                    () =>
+                        openLessonCreator()
+                );
+
+        } else {
+
+            openLessonCreator();
+
+        }
+
+    };
+
+
+function openLessonCreator() {
+
+    openModal(
+
+        "Добавить урок",
+
+        `
+
+            <div class="form">
+
+                <div class="form-row">
+
+                    <div class="form-group">
+
+                        <label>
+                            Ученик
+                        </label>
+
+                        <select
+                            id="newLessonStudent"
+                        >
+
+                            ${state.students
+                                .filter(
+                                    x =>
+                                        x.is_active
+                                )
+                                .map(
+                                    student =>
+                                        `<option
+                                            value="${student.id}"
+                                        >
+                                            ${esc(
+                                                student.full_name
+                                            )}
+                                         </option>`
+                                )
+                                .join("")}
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>
+                            Что добавляем
+                        </label>
+
+                        <select
+                            id="newLessonKind"
+                        >
+
+                            <option value="lesson">
+                                Урок
+                            </option>
+</select>
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-row">
+
+                    <div class="form-group">
+
+                        <label>
+                            Занятий в неделю
+                        </label>
+
+                        <select
+                            id="lessonsPerWeek"
+                        >
+
+                            <option value="1">
+                                1
+                            </option>
+
+                            <option value="2">
+                                2
+                            </option>
+
+                            <option value="3">
+                                3
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>
+                            Длительность
+                        </label>
+
+                        <select
+                            id="newDuration"
+                        >
+
+                            <option value="60">
+                                60 минут
+                            </option>
+
+                            <option value="45">
+                                45 минут
+                            </option>
+
+                            <option value="90">
+                                90 минут
+                            </option>
+
+                            <option value="120">
+                                120 минут
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="form-group">
+                    <label>С какого числа</label>
+                    <input id="weeklyFrom" type="date" value="${dateKey(new Date())}">
+                </div>
+
+                <div class="form-group">
+                    <label>Цвет урока</label>
+                    <input id="newLessonColor" type="color" value="#4f46e5" style="height:42px;padding:4px">
+                </div>
+
+                <div
+                    id="weeklySlots"
+                ></div>
+
+
+                <div class="form-actions">
+
+                    <button
+                        type="button"
+                        class="btn primary"
+                        id="saveWeeklySchedule"
+                    >
+                        Сохранить
+                    </button>
+
+                </div>
+
+            </div>
+
+        `
+
+    );
+
+
+    renderWeeklySlotInputs();
+
+
+    $("#lessonsPerWeek")
+        .onchange =
+        renderWeeklySlotInputs;
+
+
+    $("#saveWeeklySchedule")
+        .onclick =
+        saveWeeklySchedule;
+
+}
+
+
+function renderWeeklySlotInputs() {
+
+    const count =
+        Number(
+            $("#lessonsPerWeek")
+                .value
+        );
+
+
+    const html =
+        Array
+            .from(
+                {
+                    length:
+                        count
+                },
+                (
+                    _,
+                    index
+                ) => `
+
+                    <div
+                        class="schedule-box"
+                    >
+
+                        <b>
+                            Занятие ${index + 1}
+                        </b>
+
+                        <div
+                            class="form-row"
+                            style="
+                                margin-top:10px"
+                        >
+
+                            <div class="form-group">
+
+                                <label>
+                                    День
+                                </label>
+
+                                <select
+                                    class="weekly-day"
+                                >
+
+                                    ${DAYS.map(
+                                        (
+                                            day,
+                                            dayIndex
+                                        ) =>
+                                            `<option
+                                                value="${dayIndex}"
+                                            >
+                                                ${day}
+                                             </option>`
+                                    ).join("")}
+
+                                </select>
+
+                            </div>
+
+
+                            <div class="form-group">
+
+                                <label>
+                                    Время
+                                </label>
+
+                                <input
+                                    class="weekly-time"
+                                    type="time"
+                                    value="${
+                                        index === 0
+                                        ? "17:00"
+                                        : "18:00"
+                                    }"
+                                >
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                `
+            )
+            .join("");
+
+
+    $("#weeklySlots")
+        .innerHTML =
+        html;
+
+}
+
+
+async function saveWeeklySchedule() {
+
+    const button =
+        $("#saveWeeklySchedule");
+
+
+    const studentId =
+        $("#newLessonStudent")
+            .value;
+
+
+    const kind =
+        $("#newLessonKind")
+            .value;
+
+
+    const duration =
+        Number(
+            $("#newDuration")
+                .value
+        );
+
+
+    const days =
+        [
+            ...document
+                .querySelectorAll(
+                    ".weekly-day"
+                )
+        ];
+
+
+    const times =
+        [
+            ...document
+                .querySelectorAll(
+                    ".weekly-time"
+                )
+        ];
+
+
+    button.disabled =
+        true;
+
+    button.textContent =
+        "Сохраняем...";
+
+
+    const created = [];
+
+
+    try {
+
+        for (
+            let i = 0;
+            i < days.length;
+            i++
+        ) {
+
+            try {
+
+                const result =
+                    await api(
+                        `/students/${studentId}/schedule`,
+                        {
+                            method:
+                                "POST",
+                            body:
+                                JSON.stringify({
+
+                                    lesson_kind:
+                                        kind,
+
+                                    color:
+                                        $("#newLessonColor").value,
+
+                                    day_of_week:
+                                        Number(
+                                            days[i]
+                                                .value
+                                        ),
+
+                                    start_time:
+                                        times[i]
+                                            .value,
+
+                                    duration_minutes:
+                                        duration,
+
+                                    valid_from:
+                                        (($("#weeklyFrom") && $("#weeklyFrom").value) || dateKey(new Date())),
+
+                                    valid_until:
+                                        null
+
+                                })
+                        }
+                    );
+
+
+                created.push(
+                    result.id
+                );
+
+            } catch (e) {
+
+                // Compensating rollback.
+                for (
+                    const id of created
+                ) {
+
+                    try {
+
+                        await api(
+                            `/students/${studentId}/schedule/${id}`,
+                            {
+                                method:
+                                    "DELETE"
+                            }
+                        );
+
+                    } catch (_) {}
+
+                }
+
+                throw e;
+
+            }
+
+        }
+
+
+        closeModal();
+
+        await loadStudents();
+
+        await loadCalendar();
+
+        await loadDashboard();
+
+    } catch (e) {
+
+        appNotify(
+            e.message
+        );
+
+    } finally {
+
+        button.disabled =
+            false;
+
+        button.textContent =
+            "Сохранить";
+
+    }
+
+}
+
+
+/* =========================================================
+   FINANCE
+========================================================= */
+
+/* Раздел «Финансы» рисует finance-v2.js (window.loadFinance = loadFinanceV2).
+   Старая версия удалена. Заглушка нужна только на случай вызова
+   до загрузки finance-v2.js: дожидается загрузки страницы и передаёт вызов. */
+async function loadFinance() {
+    if (document.readyState !== "complete")
+        await new Promise(r => window.addEventListener("load", r, { once: true }));
+    if (window.loadFinance && !window.loadFinance.__itdStub)
+        return window.loadFinance();
+    console.error("finance-v2.js не загрузился");
+}
+loadFinance.__itdStub = true;
+
+
+$("#addPayment").onclick =
+    async () => {
+
+        if (
+            !state.students.length
+        )
+            await loadStudents();
+
+
+        openModal(
+
+            "Добавить оплату",
+
+            `
+
+                <div class="form">
+
+                    <div class="form-group">
+
+                        <label>
+                            Ученик
+                        </label>
+
+                        <select
+                            id="paymentStudent"
+                        >
+
+                            ${state.students
+                                .filter(
+                                    x =>
+                                        x.is_active
+                                )
+                                .map(
+                                    x =>
+                                        `<option
+                                            value="${x.id}"
+                                        >
+                                            ${esc(
+                                                x.full_name
+                                            )}
+                                         </option>`
+                                )
+                                .join("")}
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-row">
+
+                        <div class="form-group">
+
+                            <label>
+                                Сумма
+                            </label>
+
+                            <input
+                                id="paymentAmount"
+                                type="number"
+                                min="1"
+                                step="0.01"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label>
+                                Способ
+                            </label>
+
+                            <select
+                                id="paymentMethod"
+                            >
+
+                                <option value="kaspi">
+                                    Kaspi
+                                </option>
+
+                                <option value="cash">
+                                    Наличные
+                                </option>
+
+                                <option value="transfer">
+                                    Перевод
+                                </option>
+
+                                <option value="other">
+                                    Другое
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>
+                            Комментарий
+                        </label>
+
+                        <input
+                            id="paymentComment"
+                        >
+
+                    </div>
+
+
+                    <div class="form-actions">
+
+                        <button
+                            class="btn primary"
+                            id="savePayment"
+                            type="button"
+                        >
+                            Сохранить
+                        </button>
+
+                    </div>
+
+                </div>
+
+            `
+
+        );
+
+
+        $("#savePayment")
+            .onclick =
+            async () => {
+
+                const button =
+                    $("#savePayment");
+
+                button.disabled =
+                    true;
+
+                try {
+
+                    await api(
+                        "/finance/payments",
+                        {
+                            method:
+                                "POST",
+                            body:
+                                JSON.stringify({
+
+                                    student_id:
+                                        $("#paymentStudent")
+                                            .value,
+
+                                    amount:
+                                        Number(
+                                            $("#paymentAmount")
+                                                .value
+                                        ),
+
+                                    payment_method:
+                                        $("#paymentMethod")
+                                            .value,
+
+                                    request_id:
+                                        randomId(),
+
+                                    comment:
+                                        $("#paymentComment")
+                                            .value
+                                            .trim() ||
+                                        null
+
+                                })
+                        }
+                    );
+
+
+                    closeModal();
+
+                    await Promise.all([
+
+                        loadFinance(),
+
+                        loadStudents(),
+
+                        loadDashboard()
+
+                    ]);
+
+                } catch (e) {
+
+                    appNotify(
+                        e.message
+                    );
+
+                } finally {
+
+                    button.disabled =
+                        false;
+
+                }
+
+            };
+
+    };
+
+
+$("#addExpense").onclick =
+    () => {
+
+        openModal(
+
+            "Добавить расход",
+
+            `
+
+                <div class="form">
+
+                    <div class="form-row">
+
+                        <div class="form-group">
+
+                            <label>
+                                Категория
+                            </label>
+
+                            <select
+                                id="expenseCategory"
+                            >
+
+                                <option value="car">
+                                    Машина
+                                </option>
+
+                                <option value="food">
+                                    Продукты
+                                </option>
+
+                                <option value="utilities">
+                                    Коммуналка
+                                </option>
+
+                                <option value="salary">
+                                    Зарплата
+                                </option>
+
+                                <option value="equipment">
+                                    Оборудование
+                                </option>
+
+                                <option value="other">
+                                    Прочее
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label>
+                                Сумма
+                            </label>
+
+                            <input
+                                id="expenseAmount"
+                                type="number"
+                                min="1"
+                                step="0.01"
+                                required
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-row">
+
+                        <div class="form-group">
+
+                            <label>
+                                Способ
+                            </label>
+
+                            <select
+                                id="expenseMethod"
+                            >
+
+                                <option value="cash">
+                                    Наличные
+                                </option>
+
+                                <option value="kaspi">
+                                    Kaspi
+                                </option>
+
+                                <option value="transfer">
+                                    Перевод
+                                </option>
+
+                                <option value="other">
+                                    Другое
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label>
+                                Дата
+                            </label>
+
+                            <input
+                                id="expenseDate"
+                                type="date"
+                                value="${dateKey(
+                                    new Date()
+                                )}"
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label>
+                            Описание
+                        </label>
+
+                        <input
+                            id="expenseDescription"
+                            placeholder="Например: бензин"
+                        >
+
+                    </div>
+
+
+                    <div class="form-actions">
+
+                        <button
+                            class="btn primary"
+                            id="saveExpense"
+                            type="button"
+                        >
+                            Сохранить
+                        </button>
+
+                    </div>
+
+                </div>
+
+            `
+
+        );
+
+
+        $("#saveExpense")
+            .onclick =
+            async () => {
+
+                const button =
+                    $("#saveExpense");
+
+                button.disabled =
+                    true;
+
+                try {
+
+                    await api(
+                        "/finance/expenses",
+                        {
+                            method:
+                                "POST",
+                            body:
+                                JSON.stringify({
+
+                                    category:
+                                        $("#expenseCategory")
+                                            .value,
+
+                                    amount:
+                                        Number(
+                                            $("#expenseAmount")
+                                                .value
+                                        ),
+
+                                    payment_method:
+                                        $("#expenseMethod")
+                                            .value,
+
+                                    expense_date:
+                                        $("#expenseDate")
+                                            .value,
+
+                                    description:
+                                        $("#expenseDescription")
+                                            .value
+                                            .trim() ||
+                                        null
+
+                                })
+                        }
+                    );
+
+
+                    closeModal();
+
+                    await Promise.all([
+                        loadFinance(),
+                        loadDashboard()
+                    ]);
+
+                } catch (e) {
+
+                    appNotify(
+                        e.message
+                    );
+
+                } finally {
+
+                    button.disabled =
+                        false;
+
+                }
+
+            };
+
+    };
+
+
+/* =========================================================
+   NOTIFICATIONS
+========================================================= */
+
+async function loadNotifications() {
+
+    try {
+
+        const items =
+            await api(
+                "/notifications"
+            );
+
+
+        $("#notificationTable")
+            .innerHTML =
+            items.length
+            ? items.map(
+                item => `
+
+                    <tr>
+
+                        <td>
+                            ${esc(
+                                item.source
+                            )}
+                        </td>
+
+                        <td>
+                            ${esc(
+                                item.detected_action
+                            )}
+                        </td>
+
+                        <td>
+                            ${esc(
+                                item.ai_summary ||
+                                "—"
+                            )}
+                        </td>
+
+                        <td>
+
+                            <span
+                                class="pill ${
+                                    item.is_processed
+                                    ? "success"
+                                    : "warning"
+                                }"
+                            >
+
+                                ${
+                                    item.is_processed
+                                    ? "Обработано"
+                                    : "Ожидает"
+                                }
+
+                            </span>
+
+                        </td>
+
+                        <td>
+                            ${formatDateTime(
+                                item.received_at
+                            )}
+                        </td>
+
+                    </tr>
+
+                `
+            ).join("")
+            :
+            `<tr>
+                <td
+                    colspan="5"
+                    class="empty"
+                >
+                    Уведомлений нет
+                </td>
+             </tr>`;
+
+    } catch (e) {
+
+        $("#notificationTable")
+            .innerHTML =
+            `<tr>
+                <td
+                    colspan="5"
+                    class="empty"
+                >
+                    ${esc(e.message)}
+                </td>
+             </tr>`;
+
+    }
+
+}
+
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function toLocalInput(
+    value
+) {
+
+    if (!value)
+        return "";
+
+    const d =
+        new Date(value);
+
+    return [
+        d.getFullYear(),
+        "-",
+        pad(
+            d.getMonth() + 1
+        ),
+        "-",
+        pad(
+            d.getDate()
+        ),
+        "T",
+        pad(
+            d.getHours()
+        ),
+        ":",
+        pad(
+            d.getMinutes()
+        )
+    ].join("");
+
+}
+
+
+/* =========================================================
+   BOOT
+========================================================= */
+
+bindCalendarControls();
+
+async function boot() {
+
+    try {
+
+        await api(
+            "/auth/me"
+        );
+
+        await loadDashboard();
+
+    } catch (e) {
+
+        console.error(
+            e
+        );
+
+    }
+
+}
+
+
+boot();
+
+setInterval(
+    async () => {
+
+        if (
+            state.page ===
+            "schedule"
+        ) {
+
+            await loadCalendar();
+
+        }
+
+        if (
+            state.page ===
+            "dashboard"
+        ) {
+
+            await loadDashboard();
+
+        }
+
+    },
+    60 * 1000
+);
