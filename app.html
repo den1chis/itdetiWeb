@@ -4310,6 +4310,21 @@ function addStudentSlotEditor() {
         </div>
 
 
+        <div class="form-group">
+
+            <label>
+                С какого числа
+            </label>
+
+            <input
+                class="new-slot-from"
+                type="date"
+                value="${dateKey(new Date())}"
+            >
+
+        </div>
+
+
         <div
             class="form-actions"
         >
@@ -4382,9 +4397,7 @@ function addStudentSlotEditor() {
                                     ),
 
                                 valid_from:
-                                    dateKey(
-                                        new Date()
-                                    ),
+                                    (temp.querySelector(".new-slot-from").value || dateKey(new Date())),
 
                                 valid_until:
                                     null
@@ -6300,6 +6313,11 @@ function openLessonCreator() {
 
 
                 <div class="form-group">
+                    <label>С какого числа</label>
+                    <input id="weeklyFrom" type="date" value="${dateKey(new Date())}">
+                </div>
+
+                <div class="form-group">
                     <label>Цвет урока</label>
                     <input id="newLessonColor" type="color" value="#4f46e5" style="height:42px;padding:4px">
                 </div>
@@ -6529,9 +6547,7 @@ async function saveWeeklySchedule() {
                                         duration,
 
                                     valid_from:
-                                        dateKey(
-                                            new Date()
-                                        ),
+                                        (($("#weeklyFrom") && $("#weeklyFrom").value) || dateKey(new Date())),
 
                                     valid_until:
                                         null
