@@ -46,6 +46,19 @@
     const fmtDate = function (value) {
       try { return new Date(value).toLocaleDateString('ru-RU'); } catch (_) { return ''; }
     };
+    // Дата без часового пояса: '2026-11-10' -> '10.11.2026'
+    const fmtPlainDate = function (value) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(value || '');
+      return m ? m[3] + '.' + m[2] + '.' + m[1] : '';
+    };
+    const hhmm = function (value) { return value ? String(value).slice(0, 5) : ''; };
+    const scheduleText = function (e) {
+      const parts = [];
+      if (e.weekday != null) parts.push(WEEKDAYS_SHORT[e.weekday] + (e.lesson_time ? ' ' + hhmm(e.lesson_time) : ''));
+      else if (e.lesson_time) parts.push(hhmm(e.lesson_time));
+      if (e.start_date) parts.push('старт ' + fmtPlainDate(e.start_date));
+      return parts.length ? parts.join(' · ') : 'не задано';
+    };
     const plural = function (n, one, few, many) {
       const m10 = n % 10, m100 = n % 100;
       if (m10 === 1 && m100 !== 11) return one;
@@ -58,6 +71,8 @@
     const TASK_KIND = { code: 'Код', practice: 'Практика' };
     const PROGRESS = { not_started: 'Не начат', in_progress: 'В процессе', done: 'Пройден' };
     const ENROLL = { active: 'Идёт', paused: 'Пауза', finished: 'Завершён' };
+    const WEEKDAYS = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+    const WEEKDAYS_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
     const S = { tab: 'catalog', view: 'home', courseId: null, lessonId: null, studentId: null, studentName: '', studentCtx: null, showArchived: false, expanded: {} };
     const cache = { course: null, lesson: null, enrollments: [] };
@@ -124,7 +139,7 @@
           '<div class="itdl-tile-title">' + esc(c.title) + '</div>' +
           '<div class="itdl-tags">' + pill(TYPE[c.course_type] || c.course_type, c.course_type === 'code' ? 'success' : '') +
           (c.is_archived ? pill('В архиве', 'warning') : '') + '</div>' +
-          '<div class="small">' + countsText(c.modules_count, c.lessons_count) + '</div>' +
+          '<div class="small">' + countsText(c.modules_count, c.lessons_count) + (c.students_count ? ' · учеников: ' + c.students_count : '') + '</div>' +
           (c.description ? '<div class="itdl-desc">' + esc(c.description) + '</div>' : '') +
           '</div>';
       }).join('') + '</div>';
@@ -139,7 +154,7 @@
       html += '<div class="card card-padding"><div class="itdl-head"><div>' +
         '<h2 class="itdl-title">' + esc(c.title) + '</h2>' +
         '<div class="itdl-tags">' + pill(TYPE[c.course_type] || c.course_type, c.course_type === 'code' ? 'success' : '') +
-        (c.is_archived ? pill('В архиве', 'warning') : '') + '<span class="small">' + countsText(c.modules_count, c.lessons_count) + '</span></div>' +
+        (c.is_archived ? pill('В архиве', 'warning') : '') + '<span class="small">' + countsText(c.modules_count, c.lessons_count) + (c.students_count ? ' · учеников: ' + c.students_count : '') + '</span></div>' +
         (c.description ? '<div class="itdl-desc">' + esc(c.description) + '</div>' : '') +
         '</div><div class="itdl-actions">' +
         '<button type="button" class="btn" data-act="course-edit">Изменить</button>' +
@@ -282,8 +297,9 @@
 
       let html = '<div class="itdl-crumbs"><button type="button" class="btn" data-act="tab-students">← Ученики</button></div>';
       html += '<div class="card card-padding"><div class="itdl-head"><div><h2 class="itdl-title">' + esc(student.full_name) + '</h2>' +
-        '<div class="small">' + (student.course ? 'Курс в карточке: ' + esc(student.course) : 'Курс в карточке не указан') + '</div></div>' +
-        '<div class="itdl-actions"><button type="button" class="btn primary" data-act="enroll">+ Назначить курс</button></div></div></div>';
+        (enrollments.length ? '' : '<div class="small">Курс не назначен</div>') + '</div>' +
+        (enrollments.length ? '' : '<div class="itdl-actions"><button type="button" class="btn primary" data-act="enroll">+ Назначить курс</button></div>') +
+        '</div></div>';
 
       html += '<div class="itdl-subtitle">Курсы ученика</div>';
       html += enrollments.length ? enrollments.map(function (e) {
@@ -291,12 +307,18 @@
         const tree = trees[e.id];
         return '<div class="card card-padding itdl-module"><div class="itdl-head"><div>' +
           '<b>' + esc(e.course_title) + '</b> ' + pill(TYPE[e.course_type] || e.course_type, e.course_type === 'code' ? 'success' : '') + ' ' +
-          statusSelect('data-change="enr-status" data-id="' + esc(e.id) + '"', e.status, ENROLL) +
+          pill(ENROLL[e.status] || e.status, e.status === 'active' ? 'success' : (e.status === 'paused' ? 'warning' : '')) +
           '</div><div class="itdl-actions">' +
           '<button type="button" class="btn itdl-sm" data-act="enr-toggle" data-id="' + esc(e.id) + '">' + (S.expanded[e.id] ? 'Скрыть программу' : 'Программа') + '</button>' +
+          '<button type="button" class="btn itdl-sm" data-act="enr-schedule" data-id="' + esc(e.id) + '">Расписание</button>' +
+          (e.status === 'active'
+            ? '<button type="button" class="btn itdl-sm" data-act="enr-status-set" data-status="paused" data-id="' + esc(e.id) + '">Пауза</button>' +
+              '<button type="button" class="btn itdl-sm" data-act="enr-status-set" data-status="finished" data-id="' + esc(e.id) + '">Завершить</button>'
+            : '<button type="button" class="btn itdl-sm" data-act="enr-status-set" data-status="active" data-id="' + esc(e.id) + '">Возобновить</button>') +
           '<button type="button" class="btn itdl-sm" data-act="enr-remove" data-id="' + esc(e.id) + '">Снять курс</button></div></div>' +
           '<div class="itdl-progress"><div class="itdl-progress-fill" style="width:' + pct + '%"></div></div>' +
           '<div class="small">Пройдено ' + e.lessons_done + ' из ' + e.lessons_total + ' · назначен ' + esc(fmtDate(e.started_at)) + '</div>' +
+          '<div class="small">Расписание: ' + esc(scheduleText(e)) + '</div>' +
           (e.next_lesson ? '<div style="margin-top:8px"><button type="button" class="btn itdl-sm primary" data-act="lesson-open-ctx" data-id="' + esc(e.next_lesson.id) + '">Следующий урок: ' + esc(e.next_lesson.title) + '</button></div>'
             : (e.lessons_total ? '<div class="small" style="margin-top:8px">Все уроки пройдены.</div>' : '')) +
           (tree ? renderTree(tree) : '') + '</div>';
@@ -469,24 +491,51 @@
       return form;
     }
 
+    function scheduleFields(e) {
+      const src = e || {};
+      return field('Дата старта обучения (необязательно)', '<input name="start_date" type="date" value="' + esc(src.start_date || '') + '">') +
+        field('День недели (необязательно)', '<select name="weekday"><option value="">Не задан</option>' + WEEKDAYS.map(function (name, i) {
+          return '<option value="' + i + '"' + (src.weekday === i ? ' selected' : '') + '>' + esc(name) + '</option>';
+        }).join('') + '</select>') +
+        field('Время урока (необязательно)', '<input name="lesson_time" type="time" value="' + esc(hhmm(src.lesson_time)) + '">') +
+        '<div class="small">Расписание нужно для будущей автоматической расстановки уроков в календаре; сейчас оно только сохраняется.</div>';
+    }
+
+    function scheduleBody(fd) {
+      const weekday = val(fd, 'weekday');
+      return { start_date: val(fd, 'start_date') || null, weekday: weekday === '' ? null : Number(weekday), lesson_time: val(fd, 'lesson_time') || null };
+    }
+
     async function enrollForm() {
+      if (cache.enrollments.length) {
+        notify('У ученика уже есть курс. Сначала снимите его.', 'warning', 'Курс уже назначен');
+        return;
+      }
       const courses = await call('/courses');
-      const have = {};
-      cache.enrollments.forEach(function (e) { have[e.course_id] = true; });
-      const options = courses.filter(function (c) { return !have[c.id]; });
-      if (!options.length) {
-        notify(courses.length ? 'Ученик уже записан на все курсы каталога.' : 'В каталоге нет курсов. Создайте курс.', 'warning', 'Нечего назначать');
+      if (!courses.length) {
+        notify('В каталоге нет курсов. Создайте курс.', 'warning', 'Нечего назначать');
         return;
       }
       modalForm('Назначить курс',
-        field('Курс', '<select name="course_id">' + options.map(function (c) {
+        field('Курс', '<select name="course_id">' + courses.map(function (c) {
           return '<option value="' + esc(c.id) + '">' + esc(c.title) + ' (' + esc(TYPE[c.course_type] || c.course_type) + ', ' + c.lessons_count + ' ур.)</option>';
-        }).join('') + '</select>'),
+        }).join('') + '</select>') + scheduleFields(null),
         async function (fd) {
-          await call('/students/' + S.studentId + '/enrollments', send('POST', { course_id: val(fd, 'course_id') }));
+          const body = Object.assign({ course_id: val(fd, 'course_id') }, scheduleBody(fd));
+          await call('/students/' + S.studentId + '/enrollments', send('POST', body));
           notify('Курс назначен');
           await draw(true);
         }, 'Назначить');
+    }
+
+    function scheduleForm(enrollment) {
+      modalForm('Расписание курса «' + enrollment.course_title + '»',
+        scheduleFields(enrollment),
+        async function (fd) {
+          await call('/enrollments/' + enrollment.id, send('PATCH', scheduleBody(fd)));
+          notify('Расписание сохранено');
+          await draw(true);
+        });
     }
 
     function noteForm(note) {
@@ -533,6 +582,13 @@
         case 'course-open': return show('course', { courseId: ds.id });
         case 'course-edit': return courseForm(c);
         case 'course-delete':
+          if (c.students_count > 0) {
+            const word = c.students_count + ' ' + plural(c.students_count, 'ученик', 'ученика', 'учеников');
+            if (!(await ask('На курсе «' + c.title + '» назначено: ' + word + ', поэтому удалить его нельзя. Отправить курс в архив? Он пропадёт из каталога и перестанет назначаться, а ученики и их прогресс сохранятся.', 'Курс нельзя удалить'))) return;
+            await call('/courses/' + c.id, send('PATCH', { is_archived: true }));
+            notify('Курс отправлен в архив');
+            return show('home', {});
+          }
           if (!(await ask('Удалить курс «' + c.title + '» вместе со всеми модулями, уроками и материалами? Это действие нельзя отменить.', 'Удаление курса'))) return;
           await call('/courses/' + c.id, { method: 'DELETE' });
           notify('Курс удалён');
@@ -587,6 +643,18 @@
         case 'student-open': S.tab = 'students'; return show('student', { studentId: ds.id || S.studentId, studentName: ds.name || S.studentName, studentCtx: null });
         case 'enroll': return enrollForm();
         case 'enr-toggle': S.expanded[ds.id] = !S.expanded[ds.id]; return draw(true);
+        case 'enr-schedule': {
+          const e = cache.enrollments.find(function (x) { return x.id === ds.id; });
+          if (e) scheduleForm(e);
+          return;
+        }
+        case 'enr-status-set': {
+          const e = cache.enrollments.find(function (x) { return x.id === ds.id; });
+          if (!e) return;
+          if (ds.status === 'finished' && !(await ask('Завершить курс «' + e.course_title + '» у этого ученика? Его можно будет возобновить.', 'Завершение курса'))) return;
+          await call('/enrollments/' + e.id, send('PATCH', { status: ds.status }));
+          return draw(true);
+        }
         case 'enr-remove': {
           const e = cache.enrollments.find(function (x) { return x.id === ds.id; });
           if (!(await ask('Снять курс «' + e.course_title + '» с ученика? Отметки прогресса сохранятся и вернутся, если назначить курс снова.', 'Снять курс'))) return;
@@ -624,10 +692,6 @@
         await call('/students/' + S.studentCtx + '/lessons/' + S.lessonId + '/progress', send('PUT', { status: el.value }));
         notify('Прогресс обновлён');
         return;
-      }
-      if (kind === 'enr-status') {
-        await call('/enrollments/' + ds.id, send('PATCH', { status: el.value }));
-        return draw(true);
       }
     }
 

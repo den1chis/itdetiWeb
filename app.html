@@ -2418,17 +2418,6 @@ const state = {
 };
 
 
-const COURSE_OPTIONS = [
-    "",
-    "Python",
-    "Scratch",
-    "Roblox",
-    "Unity",
-    "Blender",
-    "Другое"
-];
-
-
 const DAYS = [
     "Понедельник",
     "Вторник",
@@ -3438,32 +3427,25 @@ $("#newStudent").onclick =
 
 
 function courseOptions(
-    selected = ""
+    courses,
+    selectedId = ""
 ) {
 
-    return COURSE_OPTIONS
-        .map(
-            value => `
+    const list = Array.isArray(courses) ? courses : [];
 
+    return [
+        `<option value="">Курс не выбран</option>`,
+        ...list.map(
+            course => `
                 <option
-                    value="${esc(value)}"
-                    ${
-                        value === selected
-                        ? "selected"
-                        : ""
-                    }
+                    value="${esc(course.id)}"
+                    ${course.id === selectedId ? "selected" : ""}
                 >
-
-                    ${
-                        value ||
-                        "Курс не выбран"
-                    }
-
+                    ${esc(course.title)}
                 </option>
-
             `
         )
-        .join("");
+    ].join("");
 
 }
 
@@ -3515,6 +3497,40 @@ async function openStudentEditor(
         student.parents.length
         ? student.parents[0]
         : null;
+
+
+    // Курсы берутся из каталога LMS; назначение хранится в LMS, а не в свободной строке.
+    let lmsCourses = [];
+    let lmsEnrollment = null;
+    let lmsFailed = false;
+
+    try {
+
+        const catalog =
+            await api("/lms/courses");
+
+        if (studentId) {
+
+            const enrollments =
+                await api(`/lms/students/${studentId}/enrollments`);
+
+            lmsEnrollment =
+                enrollments[0] || null;
+
+        }
+
+        lmsCourses =
+            catalog.filter(
+                course =>
+                    !course.is_archived ||
+                    (lmsEnrollment && lmsEnrollment.course_id === course.id)
+            );
+
+    } catch (error) {
+
+        lmsFailed = true;
+
+    }
 
 
     openModal(
@@ -3582,11 +3598,15 @@ async function openStudentEditor(
 
                     <select
                         id="studentCourse"
+                        ${lmsFailed ? "disabled" : ""}
                     >
 
                         ${
-                            courseOptions(
-                                student?.course ||
+                            lmsFailed
+                            ? `<option value="">Каталог курсов недоступен</option>`
+                            : courseOptions(
+                                lmsCourses,
+                                lmsEnrollment?.course_id ||
                                 ""
                             )
                         }
@@ -3832,11 +3852,6 @@ async function openStudentEditor(
                             .value ||
                         null,
 
-                    course:
-                        $("#studentCourse")
-                            .value ||
-                        null,
-
                     notes:
                         $("#studentNotes")
                             .value
@@ -3900,6 +3915,37 @@ async function openStudentEditor(
                                 )
                         }
                     );
+
+                }
+
+
+                if (!lmsFailed) {
+
+                    const chosenCourse =
+                        $("#studentCourse").value ||
+                        null;
+
+                    const currentCourse =
+                        lmsEnrollment
+                        ? lmsEnrollment.course_id
+                        : null;
+
+                    if (chosenCourse !== currentCourse) {
+
+                        await api(
+                            `/lms/students/${id}/course`,
+                            {
+                                method:
+                                    "PUT",
+                                body:
+                                    JSON.stringify({
+                                        course_id:
+                                            chosenCourse
+                                    })
+                            }
+                        );
+
+                    }
 
                 }
 
