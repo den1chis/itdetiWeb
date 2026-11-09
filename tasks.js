@@ -214,7 +214,8 @@
   function defaultProject() { return S.filter && S.filter !== 'none' ? S.filter : ''; }
 
   function quickHtml() {
-    const defDate = S.view === 'projects' ? '' : (S.view === 'week' && key(monday(S.anchor)) !== key(monday(new Date())) ? key(monday(S.anchor)) : todayKey());
+    // На странице «Задачи» новая задача по умолчанию без срока (на Главной — на сегодня).
+    const defDate = '';
     return '<form class="itdt-quick" data-form="quick" autocomplete="off">' +
       '<input type="text" name="title" placeholder="Новая задача… (Enter — добавить)" maxlength="300">' +
       '<select name="project" aria-label="Проект">' + projectOptions(defaultProject()) + '</select>' +
@@ -667,7 +668,7 @@
       case 'retry': S.error = null; draw(); return reload();
       case 'new':
         return openEditor(null, {
-          date: el.dataset.date != null ? el.dataset.date : (S.view === 'projects' ? '' : todayKey()),
+          date: el.dataset.date != null ? el.dataset.date : '',
           project_id: el.dataset.project != null ? el.dataset.project : undefined
         });
       case 'toggle': if (item) return toggle(item); return;
@@ -923,7 +924,7 @@
       item.textContent = 'Добавить задачу';
       item.onclick = function () {
         menu.style.display = 'none';
-        loadProjects().catch(function () {}).then(function () { openEditor(null, { date: todayKey() }); });
+        loadProjects().catch(function () {}).then(function () { openEditor(null, { date: isTasksPageOpen() ? '' : todayKey() }); });
       };
       menu.appendChild(item);
     }
