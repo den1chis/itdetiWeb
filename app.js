@@ -101,7 +101,10 @@ async function createOrReactivateStudentSchedule(path, options){
    CONFIG
 ========================================================= */
 
+// Локальная разработка: localStorage.setItem("itdeti_api_override", "http://localhost:8000")
+// в консоли браузера; без этой записи всегда используется рабочий сервер.
 const API =
+    (function () { try { return localStorage.getItem("itdeti_api_override"); } catch (_) { return null; } })() ||
     "https://itdeti.onrender.com";
 
 const ACCESS =
