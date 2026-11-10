@@ -65,7 +65,8 @@
     }
   }
 
-  // Выполненная задача видна зачёркнутой до конца дня, в который её отметили; потом скрывается.
+  // Для списков без даты и вида «Проекты»: выполненная задача видна зачёркнутой до конца дня, потом скрывается.
+  // В календаре (неделя/месяц) этот фильтр не применяется — выполненные остаются на своей дате.
   function visible(item) {
     if (!item.is_done) return true;
     if (!item.done_at) return false;
@@ -237,7 +238,7 @@
     const t = todayKey();
     const byDay = {};
     (S.feed.items || []).forEach(function (it) {
-      if (!visible(it) || !passFilter(it)) return;
+      if (!passFilter(it)) return;  // в календаре выполненные задачи остаются на своей дате (история)
       (byDay[it.date] = byDay[it.date] || []).push(it);
     });
     const overdue = (S.feed.overdue || []).filter(passFilter);
@@ -279,7 +280,7 @@
     const month = S.anchor.getMonth();
     const byDay = {};
     (S.feed.items || []).forEach(function (it) {
-      if (!visible(it) || !passFilter(it)) return;
+      if (!passFilter(it)) return;  // в календаре выполненные задачи остаются на своей дате (история)
       (byDay[it.date] = byDay[it.date] || []).push(it);
     });
     let html = '<div class="itdt-month" data-swipe="1"><div class="itdt-month-head">' + WD_SHORT.map(function (d) { return '<div>' + d + '</div>'; }).join('') +
