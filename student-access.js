@@ -1,26 +1,42 @@
-/* ITDETI — блок «Доступ к ученическому сайту» в карточке ученика.
+/* ITDETI — блок «Доступ к ученическому сайту».
  *
- * Изолированный модуль, как lms.js: подключается одной строкой <script src="student-access.js"> после app.js,
- * оборачивает window.openStudentEditor и дорисовывает блок перед кнопками формы.
- * Ничего не меняет в существующем коде; если сервер не знает маршрутов /students/{id}/access
- * или у пользователя нет прав (роль не admin), блок просто не показывается.
+ * Изолированный модуль: подключается одной строкой <script src="student-access.js"> после app.js и lms.js.
+ * Даёт точку подключения window.StudentAccess:
+ *   StudentAccess.mount(container, studentId)  — нарисовать блок в контейнере;
+ *   StudentAccess.clearSecrets()               — убрать показанные пароли из DOM (вызывается при уходе с карточки).
+ * Где показывается: «Курсы → Ученики → карточка ученика» (lms.js). В старой карточке ученика
+ * (вкладка «Ученики», форма с ценой и расписанием) блока больше нет.
  *
- * Сервер: itdeti, routers/student_access.py (только admin). Пароль приходит в ответе ОДИН раз.
+ * Только admin: роль берётся из /auth/me; для остальных блок не показывается. Защита — на сервере
+ * (itdeti, routers/student_access.py), здесь только удобство.
+ *
+ * Пароль: скрыт; «Показать» запрашивает GET /students/{id}/access/password. Пароль выводится только через
+ * textContent, не пишется в console, URL и localStorage; «Скрыть» и уход с карточки удаляют его из DOM.
  */
 (function () {
   'use strict';
 
-  if (typeof window.openStudentEditor !== 'function' || typeof window.api !== 'function') {
-    console.warn('ITDETI student-access: нет openStudentEditor/api, модуль отключён');
+  if (typeof window.api !== 'function') {
+    console.warn('ITDETI student-access: нет api, модуль отключён');
     return;
   }
 
-  var original = window.openStudentEditor;
-
-  function esc(v) {
-    return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  // ------------------------------------------------------------ утилиты
+  function el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (key) {
+      if (key === 'text') node.textContent = attrs[key];
+      else if (key === 'className') node.className = attrs[key];
+      else if (key === 'onclick') node.onclick = attrs[key];
+      else node.setAttribute(key, attrs[key]);
     });
+    (children || []).forEach(function (child) {
+      if (child) node.appendChild(typeof child === 'string' ? document.createTextNode(child) : child);
+    });
+    return node;
+  }
+  function button(text, onclick, extraClass) {
+    return el('button', { type: 'button', className: 'btn itdl-sm' + (extraClass ? ' ' + extraClass : ''), text: text, onclick: onclick });
   }
   function notify(message, type) {
     if (window.appNotify) window.appNotify(message, type || 'success');
@@ -37,128 +53,185 @@
   function call(studentId, path, options) {
     return window.api('/students/' + encodeURIComponent(studentId) + '/access' + (path || ''), options);
   }
+  // window.api бросает Error, где message — строка detail или JSON объекта detail.
+  function errorCode(error) {
+    var message = (error && error.message) || '';
+    try { var detail = JSON.parse(message); return (detail && detail.code) || ''; } catch (_) { return ''; }
+  }
+  function errorText(error) {
+    var code = errorCode(error);
+    if (code === 'password_not_stored') return 'Пароль недоступен для просмотра, сбросьте';
+    if (code === 'password_view_disabled') return 'Просмотр пароля отключён на сервере';
+    var message = (error && error.message) || 'Ошибка';
+    try { var detail = JSON.parse(message); if (detail && detail.message) return detail.message; } catch (_) { /* строка */ }
+    return message;
+  }
+  function busy(btn, on) { if (btn) btn.disabled = on; }
 
+  // ------------------------------------------------------------ роль (только admin)
+  var rolePromise = null;
+  function isAdmin() {
+    if (!rolePromise) {
+      rolePromise = window.api('/auth/me')
+        .then(function (me) { return !!me && me.role === 'admin'; })
+        .catch(function () { rolePromise = null; return false; });
+    }
+    return rolePromise;
+  }
+
+  // ------------------------------------------------------------ стили (поверх стилей карточки)
   var STYLE_ID = 'student-access-style';
   function ensureStyle() {
     if (document.getElementById(STYLE_ID)) return;
     var style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent =
-      '.sa-box{border:1px solid var(--border,#e6e8ee);border-radius:14px;padding:12px 14px;margin:6px 0 14px;background:var(--surface-soft,#f8f9fc)}' +
-      '.sa-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}' +
+      '.sa-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}' +
       '.sa-row input{flex:1 1 160px;min-width:0}' +
-      '.sa-muted{color:var(--muted,#697386);font-size:14px}' +
-      '.sa-state{font-weight:600}' +
+      '.sa-muted{color:var(--muted,#697386);font-size:13px;margin-top:4px}' +
+      '.sa-state{font-weight:700;margin-top:10px}' +
       '.sa-on{color:var(--success,#14803a)}.sa-off{color:var(--danger,#b42318)}' +
-      '.sa-secret{margin-top:10px;padding:12px;border-radius:12px;background:var(--warning-bg,#fff7e5);color:#5c3b00}' +
-      '.sa-secret code{font-size:20px;font-weight:700;letter-spacing:1px;background:#fff;padding:2px 8px;border-radius:8px}';
+      '.sa-pass{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}' +
+      '.sa-pass code{font-size:18px;font-weight:700;letter-spacing:1px;background:var(--surface-soft,#f4f5f8);border:1px solid var(--border,#e6e8ee);padding:4px 10px;border-radius:8px}' +
+      '.sa-dots{letter-spacing:3px;color:var(--muted,#697386)}' +
+      '.sa-error{margin-top:8px;color:var(--danger,#b42318);font-size:13px}';
     document.head.appendChild(style);
   }
 
-  function secretHtml(creds) {
-    return '<div class="sa-secret" id="saSecret">' +
-      '<div><b>Запишите сейчас — пароль больше не будет показан.</b></div>' +
-      '<div style="margin-top:6px">Логин: <code>' + esc(creds.login) + '</code></div>' +
-      '<div style="margin-top:6px">Пароль: <code>' + esc(creds.password) + '</code></div>' +
-      '<div class="sa-row"><button type="button" class="btn" id="saCopy">Скопировать</button>' +
-      '<button type="button" class="btn" id="saHide">Скрыть</button></div></div>';
+  // ------------------------------------------------------------ показанные пароли
+  var secrets = [];  // элементы с открытым паролем (чтобы убрать их из DOM)
+  function clearSecrets() {
+    secrets.forEach(function (node) { node.textContent = ''; if (node.parentNode) node.parentNode.removeChild(node); });
+    secrets = [];
   }
 
-  function render(box, studentId, status, creds) {
-    var html = '';
-    if (!status.exists) {
-      html =
-        '<div class="sa-state">Доступа нет</div>' +
-        '<div class="sa-muted">Логин можно поправить. Пароль (6 цифр) создаётся автоматически.</div>' +
-        '<div class="sa-row"><input id="saLogin" placeholder="логин" maxlength="32" autocomplete="off" value="' + esc(status.suggestion || '') + '">' +
-        '<button type="button" class="btn" id="saCreate">Создать доступ</button></div>';
-    } else {
-      var locked = status.locked_until && new Date(status.locked_until) > new Date();
-      html =
-        '<div class="sa-state">' +
-          (status.is_active ? '<span class="sa-on">Доступ включён</span>' : '<span class="sa-off">Доступ выключен</span>') +
-          (locked ? ' · <span class="sa-off">вход заблокирован до ' + esc(fmt(status.locked_until)) + '</span>' : '') +
-        '</div>' +
-        '<div class="sa-muted">Последний вход: ' + esc(fmt(status.last_login_at) || 'ещё не входил') + '</div>' +
-        '<div class="sa-row"><input id="saLogin" maxlength="32" autocomplete="off" value="' + esc(status.login) + '">' +
-        '<button type="button" class="btn" id="saSaveLogin">Сохранить логин</button></div>' +
-        '<div class="sa-row">' +
-          '<button type="button" class="btn" id="saReset">Сбросить пароль</button>' +
-          '<button type="button" class="btn" id="saToggle" style="color:' + (status.is_active ? '#b42318' : 'inherit') + '">' +
-            (status.is_active ? 'Выключить доступ' : 'Включить доступ') + '</button>' +
-        '</div>';
-    }
-    box.innerHTML = '<div class="section-title">Доступ к ученическому сайту</div><div class="sa-box">' + html +
-      (creds ? secretHtml(creds) : '') + '</div>';
-    bind(box, studentId, status, creds);
-  }
+  // Строка пароля: скрыт (••••••) или открыт (code + «Копировать» + «Скрыть»).
+  function passwordRow(studentId, box, opened) {
+    var row = el('div', { className: 'sa-pass' });
+    var error = el('div', { className: 'sa-error' });
+    error.hidden = true;
 
-  function busy(button, on) {
-    if (!button) return;
-    button.disabled = on;
-  }
-
-  function bind(box, studentId, status, creds) {
-    var $ = function (sel) { return box.querySelector(sel); };
-    var reload = function (newCreds) { load(box, studentId, newCreds); };
-
-    if (creds) {
-      $('#saCopy').onclick = function () {
-        var text = 'Логин: ' + creds.login + '\nПароль: ' + creds.password;
-        (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
-          .then(function () { notify('Скопировано'); })
-          .catch(function () { notify('Не удалось скопировать, перепишите вручную', 'error'); });
-      };
-      $('#saHide').onclick = function () { var s = $('#saSecret'); if (s) s.remove(); creds = null; };
-    }
-
-    if (!status.exists) {
-      $('#saCreate').onclick = function () {
+    function showHidden() {
+      clearSecrets();
+      row.textContent = '';
+      row.appendChild(el('span', { text: 'Пароль: ' }));
+      row.appendChild(el('span', { className: 'sa-dots', text: '••••••' }));
+      row.appendChild(button('Показать', function () {
         var btn = this;
         busy(btn, true);
-        call(studentId, '', { method: 'POST', body: JSON.stringify({ login: $('#saLogin').value.trim() || null }) })
-          .then(function (result) { notify('Доступ создан'); reload(result); })
-          .catch(function (e) { notify(e.message, 'error'); busy(btn, false); });
-      };
+        error.hidden = true;
+        call(studentId, '/password')
+          .then(function (data) { if (box.isConnected) showOpen(data.password); })
+          .catch(function (e) { error.textContent = errorText(e); error.hidden = false; busy(btn, false); });
+      }));
+    }
+
+    function showOpen(password) {
+      clearSecrets();
+      row.textContent = '';
+      var code = el('code', { text: password });
+      secrets.push(code);
+      row.appendChild(el('span', { text: 'Пароль: ' }));
+      row.appendChild(code);
+      row.appendChild(button('Копировать', function () {
+        var text = code.textContent;
+        (navigator.clipboard && text ? navigator.clipboard.writeText(text) : Promise.reject())
+          .then(function () { notify('Скопировано'); })
+          .catch(function () { notify('Не удалось скопировать, перепишите вручную', 'error'); });
+      }));
+      row.appendChild(button('Скрыть', showHidden));
+    }
+
+    if (opened) showOpen(opened); else showHidden();
+    return [row, error];
+  }
+
+  // ------------------------------------------------------------ отрисовка
+  function render(box, studentId, status, justCreated) {
+    clearSecrets();
+    box.textContent = '';
+    box.appendChild(el('div', { className: 'itdl-subtitle', style: 'margin-top:0', text: 'Доступ к ученическому сайту' }));
+
+    if (!status.exists) {
+      var input = el('input', { maxlength: '32', autocomplete: 'off', placeholder: 'логин', spellcheck: 'false' });
+      input.value = status.suggestion || '';
+      box.appendChild(el('div', { className: 'sa-state', text: 'Доступа нет' }));
+      box.appendChild(el('div', { className: 'sa-muted', text: 'Логин можно поправить. Пароль (6 цифр) создаётся автоматически.' }));
+      box.appendChild(el('div', { className: 'sa-row' }, [input, button('Создать доступ', function () {
+        var btn = this;
+        busy(btn, true);
+        call(studentId, '', { method: 'POST', body: JSON.stringify({ login: input.value.trim() || null }) })
+          .then(function (result) { notify('Доступ создан'); load(box, studentId, result.password); })
+          .catch(function (e) { notify(errorText(e), 'error'); busy(btn, false); });
+      }, 'primary')]));
       return;
     }
 
-    $('#saSaveLogin').onclick = function () {
+    var now = new Date();
+    var locked = status.locked_until && new Date(status.locked_until) > now;
+    var state = el('div', { className: 'sa-state' }, [
+      el('span', { className: status.is_active ? 'sa-on' : 'sa-off', text: status.is_active ? 'Доступ включён' : 'Доступ выключен' }),
+      locked ? el('span', { className: 'sa-off', text: ' · вход заблокирован до ' + fmt(status.locked_until) }) : null
+    ]);
+    box.appendChild(state);
+    box.appendChild(el('div', { className: 'sa-muted', text: 'Последний вход: ' + (fmt(status.last_login_at) || 'ещё не входил') }));
+    if (!locked && status.failed_attempts > 0) {
+      box.appendChild(el('div', { className: 'sa-muted', text: 'Неверных попыток входа подряд: ' + status.failed_attempts }));
+    }
+
+    var loginInput = el('input', { maxlength: '32', autocomplete: 'off', spellcheck: 'false' });
+    loginInput.value = status.login || '';
+    box.appendChild(el('div', { className: 'sa-row' }, [el('span', { text: 'Логин:' }), loginInput, button('Сохранить логин', function () {
       var btn = this;
-      var login = $('#saLogin').value.trim();
+      var login = loginInput.value.trim();
       if (!login || login === status.login) return;
       busy(btn, true);
       call(studentId, '', { method: 'PATCH', body: JSON.stringify({ login: login }) })
-        .then(function () { notify('Логин сохранён'); reload(creds); })
-        .catch(function (e) { notify(e.message, 'error'); busy(btn, false); });
-    };
+        .then(function () { notify('Логин сохранён'); load(box, studentId); })
+        .catch(function (e) { notify(errorText(e), 'error'); busy(btn, false); });
+    })]));
 
-    $('#saReset').onclick = function () {
+    passwordRow(studentId, box, justCreated).forEach(function (node) { box.appendChild(node); });
+
+    var actions = el('div', { className: 'sa-row' });
+    actions.appendChild(button('Сбросить пароль', function () {
       var btn = this;
-      ask('Сбросить пароль? Старый пароль перестанет работать, новый будет показан один раз.').then(function (ok) {
+      ask('Сбросить пароль? Старый пароль перестанет работать.').then(function (ok) {
         if (!ok) return;
         busy(btn, true);
         call(studentId, '/reset-password', { method: 'POST' })
-          .then(function (result) { notify('Новый пароль создан'); reload(result); })
-          .catch(function (e) { notify(e.message, 'error'); busy(btn, false); });
+          .then(function (result) { notify('Новый пароль создан'); load(box, studentId, result.password); })
+          .catch(function (e) { notify(errorText(e), 'error'); busy(btn, false); });
       });
-    };
-
-    $('#saToggle').onclick = function () {
+    }));
+    if (locked || status.failed_attempts > 0) {
+      actions.appendChild(button('Снять блокировку', function () {
+        var btn = this;
+        busy(btn, true);
+        call(studentId, '/unlock', { method: 'POST' })
+          .then(function () { notify('Блокировка снята'); load(box, studentId); })
+          .catch(function (e) { notify(errorText(e), 'error'); busy(btn, false); });
+      }));
+    }
+    var toggle = button(status.is_active ? 'Выключить доступ' : 'Включить доступ', function () {
       var btn = this;
       var turnOn = !status.is_active;
       (turnOn ? Promise.resolve(true) : ask('Выключить доступ? Ученик сразу перестанет видеть уроки.')).then(function (ok) {
         if (!ok) return;
         busy(btn, true);
         call(studentId, '', { method: 'PATCH', body: JSON.stringify({ is_active: turnOn }) })
-          .then(function () { notify(turnOn ? 'Доступ включён' : 'Доступ выключен'); reload(creds); })
-          .catch(function (e) { notify(e.message, 'error'); busy(btn, false); });
+          .then(function () { notify(turnOn ? 'Доступ включён' : 'Доступ выключен'); load(box, studentId); })
+          .catch(function (e) { notify(errorText(e), 'error'); busy(btn, false); });
       });
-    };
+    });
+    if (status.is_active) toggle.style.color = 'var(--danger,#b42318)';
+    actions.appendChild(toggle);
+    box.appendChild(actions);
   }
 
-  function load(box, studentId, creds) {
-    call(studentId, '')
+  // justCreated — пароль из ответа «создать» / «сбросить»: показывается сразу, открытым.
+  function load(box, studentId, justCreated) {
+    return call(studentId, '')
       .then(function (status) {
         if (status.exists) return status;
         return call(studentId, '/login-suggestion')
@@ -166,34 +239,34 @@
           .catch(function () { return status; });
       })
       .then(function (status) {
-        if (!box.isConnected) return;
-        render(box, studentId, status, creds);
+        if (box.isConnected) render(box, studentId, status, justCreated);
       })
       .catch(function (e) {
-        // Нет прав (не admin) или сервер ещё без этих маршрутов -> блок не показываем.
-        console.warn('ITDETI student-access:', e && e.message);
-        box.remove();
+        // Сервер ещё без этих маршрутов или нет прав -> блок не показываем, остальная карточка работает.
+        console.warn('ITDETI student-access: блок не загружен (' + ((e && e.message) || 'ошибка') + ')');
+        if (box.parentNode) box.parentNode.removeChild(box);
       });
   }
 
-  async function openStudentEditorWithAccess(studentId) {
-    var result = await original.apply(this, arguments);
+  function mount(container, studentId) {
     try {
-      if (studentId === null || studentId === undefined || String(studentId).trim() === '') return result;
-      var form = document.getElementById('studentEditor');
-      if (!form || form.querySelector('#studentAccessBlock')) return result;
+      if (!container || studentId == null || String(studentId).trim() === '') return;
+      var sid = String(studentId).trim();
       ensureStyle();
-      var box = document.createElement('div');
-      box.id = 'studentAccessBlock';
-      box.innerHTML = '<div class="section-title">Доступ к ученическому сайту</div><div class="sa-box sa-muted">Загрузка…</div>';
-      var actions = form.querySelector('.form-actions');
-      form.insertBefore(box, actions || null);
-      load(box, String(studentId).trim());
+      clearSecrets();
+      container.textContent = '';
+      var box = el('div', { className: 'card card-padding itdl-module', 'data-student-access': sid });
+      box.appendChild(el('div', { className: 'sa-muted', text: 'Доступ к ученическому сайту: загрузка…' }));
+      container.appendChild(box);
+      isAdmin().then(function (admin) {
+        if (!box.isConnected) return;
+        if (!admin) { container.textContent = ''; return; }
+        load(box, sid);
+      });
     } catch (e) {
-      console.warn('ITDETI student-access:', e);
+      console.warn('ITDETI student-access: блок не подключён', e && e.message);
     }
-    return result;
   }
 
-  window.openStudentEditor = openStudentEditorWithAccess;
+  window.StudentAccess = { mount: mount, clearSecrets: clearSecrets };
 })();
