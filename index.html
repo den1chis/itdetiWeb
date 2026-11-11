@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#111827">
     <title>ITdeti — Вход</title>
-    <link rel="stylesheet" href="mobile.css?v=2026111101">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg?v=2026111201">
+    <link rel="stylesheet" href="mobile.css?v=2026111201">
 
     <style>
         * {
@@ -284,8 +285,27 @@ document
 
 
                 if (!response.ok) {
+                    // 429: сервер ограничил число попыток входа (текст на русском приходит в detail).
+                    const detail =
+                        typeof data.detail === "string"
+                            ? data.detail
+                            : (data.detail && data.detail.message) || "";
+
+                    if (response.status === 429) {
+                        throw new Error(
+                            detail ||
+                            "Слишком много попыток входа. Попробуйте позже."
+                        );
+                    }
+
+                    if (response.status === 401) {
+                        throw new Error(
+                            "Неверный email или пароль"
+                        );
+                    }
+
                     throw new Error(
-                        data.detail ||
+                        detail ||
                         "Ошибка авторизации"
                     );
                 }
@@ -311,7 +331,9 @@ document
             } catch (e) {
 
                 error.textContent =
-                    e.message;
+                    e instanceof TypeError
+                        ? "Не удалось связаться с сервером. Проверьте интернет и попробуйте ещё раз."
+                        : e.message;
 
                 error.style.display =
                     "block";
