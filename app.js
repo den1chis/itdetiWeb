@@ -271,8 +271,9 @@ let refreshInFlight = null;
 function refreshAccess() {
 
     if (!refreshInFlight) {
+        // Ошибка сети не глотается: api() бросит её дальше и токены останутся (как было до общего запроса);
+        // false — только когда сервер ответил отказом.
         refreshInFlight = refreshAccessOnce()
-            .catch(() => false)
             .finally(() => { refreshInFlight = null; });
     }
 
