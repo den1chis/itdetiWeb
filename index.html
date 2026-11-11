@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#111827">
     <title>ITdeti — Вход</title>
-    <link rel="stylesheet" href="mobile.css?v=2026110702">
+    <link rel="stylesheet" href="mobile.css?v=2026111101">
 
     <style>
         * {
@@ -205,7 +205,10 @@
 
 <script>
 
+// Локальная разработка: localStorage.setItem("itdeti_api_override", "http://localhost:8000")
+// в консоли браузера; без этой записи всегда используется рабочий сервер.
 const API =
+    (function () { try { return localStorage.getItem("itdeti_api_override"); } catch (_) { return null; } })() ||
     "https://itdeti.onrender.com";
 
 const ACCESS =

@@ -101,7 +101,9 @@
         else if (S.view === 'lesson') html = await viewLesson();
         else if (S.view === 'student') html = await viewStudent();
         if (my !== drawToken) return;
+        if (window.StudentAccess) window.StudentAccess.clearSecrets();
         root.innerHTML = html;
+        if (S.view === 'student') mountStudentAccess();
         if (quiet) window.scrollTo(0, scrollY);
       } catch (error) {
         if (my !== drawToken) return;
@@ -400,6 +402,7 @@
 
       html += enrollments.length ? enrollments.map(function (e) { return courseCard(e, trees[e.id]); }).join('')
         : '<div class="card card-padding itdl-module"><div class="empty">Курсы не назначены. Нажмите «+ Назначить курс».</div></div>';
+      html += '<div id="itdlStudentAccess"></div>';
 
       const notesInner = '<div class="form-group" style="margin-top:10px"><textarea id="itdlNoteText" rows="3" placeholder="Заметка об ученике: что получилось, что повторить…"></textarea></div>' +
         '<div class="itdl-actions" style="margin-top:8px"><button type="button" class="btn primary" data-act="note-add">Добавить заметку</button></div>' +
@@ -411,6 +414,18 @@
       html += '<div class="card card-padding itdl-module">' +
         fold('notes', 'Заметки' + (notes.length ? ' · ' + notes.length : '') + ' <span class="small">(видите только Вы)</span>', notesInner, true) + '</div>';
       return html;
+    }
+
+    // Блок «Доступ к ученическому сайту» (student-access.js, только admin). Изолирован: если модуль
+    // не загрузился или упал, место под блок просто остаётся пустым, остальная карточка работает.
+    function mountStudentAccess() {
+      const slot = document.getElementById('itdlStudentAccess');
+      if (!slot) return;
+      try {
+        if (window.StudentAccess && typeof window.StudentAccess.mount === 'function') window.StudentAccess.mount(slot, S.studentId);
+      } catch (error) {
+        console.warn('ITDETI LMS: блок доступа ученика не подключён', error && error.message);
+      }
     }
 
     function renderTree(tree) {
@@ -859,6 +874,8 @@
     PAGE_INFO.courses = ['Курсы', 'Курсы, уроки и прогресс учеников'];
     const originalLoadPage = window.loadPage;
     window.loadPage = async function (page) {
+      // Уход с карточки ученика: показанный пароль убирается из DOM.
+      if (window.StudentAccess) { try { window.StudentAccess.clearSecrets(); } catch (_) { /* модуль доступа изолирован */ } }
       if (page === 'courses') return draw(false);
       return originalLoadPage.apply(this, arguments);
     };
