@@ -263,7 +263,25 @@ function randomId() {
    AUTH / API
 ========================================================= */
 
-async function refreshAccess() {
+// Один запрос обновления на всех: несколько параллельных api() (или модули при старте) получают 401
+// одновременно и ждут один и тот же /auth/refresh. Иначе второй запрос шёл бы с уже погашенным
+// refresh-токеном (сервер выдаёт новый при каждом обновлении), получал 401 и выкидывал на вход.
+let refreshInFlight = null;
+
+function refreshAccess() {
+
+    if (!refreshInFlight) {
+        // Ошибка сети не глотается: api() бросит её дальше и токены останутся (как было до общего запроса);
+        // false — только когда сервер ответил отказом.
+        refreshInFlight = refreshAccessOnce()
+            .finally(() => { refreshInFlight = null; });
+    }
+
+    return refreshInFlight;
+
+}
+
+async function refreshAccessOnce() {
 
     const token =
         localStorage.getItem(
